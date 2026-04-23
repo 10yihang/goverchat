@@ -1,0 +1,12 @@
+Flask==3.0.3
+PyMySQL==1.1.1
+DBUtils==3.1.0
+scikit-learn==1.5.2
+jieba==0.42.1
+setuptools>=69.0
+openai-whisper>=20231117
+torch>=2.2.2
+ffmpeg-python==0.2.0
+Flask-Cors==4.0.1
+Werkzeug==3.0.3
+openai>=1.30.0

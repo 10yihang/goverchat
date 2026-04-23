@@ -1,0 +1,150 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { api, ApiError } from "@/lib/apiClient"
+import { useChatStore } from "@/stores/chatStore"
+import { toast } from "sonner"
+import type { ChatAnswer, SessionSummary } from "@/types/api"
+import type { DisplayMessage } from "@/components/chat/MessageBubble"
+
+const KEYS = {
+  sessions: ["sessions"] as const,
+  history: (sid: string | null) => ["history", sid] as const,
+}
+
+interface VoiceResponse extends ChatAnswer { text: string }
+interface ImageResponse extends ChatAnswer { text: string; filename?: string }
+
+function userMsg(content: string, msgType?: "text" | "voice"): DisplayMessage {
+  return { role: "user", content, msg_type: msgType ?? "text", created_at: new Date().toISOString() }
+}
+
+function botMsg(d: ChatAnswer): DisplayMessage {
+  return {
+    role: "bot", content: d.answer, msg_type: "text", confidence: d.confidence,
+    knowledge_id: d.knowledge_id, sources: d.sources, service_card: d.service_card,
+    answer_source: d.answer_source, form_prompt: d.form_prompt,
+    created_at: new Date().toISOString(),
+  }
+}
+
+type QC = ReturnType<typeof useQueryClient>
+
+function append(qc: QC, sid: string | null, ...msgs: DisplayMessage[]) {
+  qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => [...(old ?? []), ...msgs])
+}
+
+function replacePlaceholder(qc: QC, sid: string | null, ...msgs: DisplayMessage[]) {
+  qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
+    const arr = [...(old ?? [])]
+    arr.pop()
+    return [...arr, ...msgs]
+  })
+}
+
+function handleNewSession(
+  qc: QC, prevSid: string | null, newSid: string,
+  setActive: (id: string) => void, msgs: DisplayMessage[], dropLast = false,
+) {
+  const old = qc.getQueryData<DisplayMessage[]>(KEYS.history(prevSid)) ?? []
+  const base = dropLast ? old.slice(0, -1) : old
+  qc.setQueryData<DisplayMessage[]>(KEYS.history(newSid), [...base, ...msgs])
+  setActive(newSid)
+}
+
+export function useSessions() {
+  return useQuery<SessionSummary[]>({
+    queryKey: KEYS.sessions,
+    queryFn: async () => {
+      const r = await api.get<{ sessions: SessionSummary[] }>("/api/history/sessions")
+      return r.sessions
+    },
+    staleTime: 30_000,
+  })
+}
+
+export function useHistory(sessionId: string | null) {
+  return useQuery<DisplayMessage[]>({
+    queryKey: KEYS.history(sessionId),
+    queryFn: async () => {
+      const r = await api.get<{ messages: DisplayMessage[] }>(`/api/history/${sessionId}`)
+      return r.messages
+    },
+    enabled: !!sessionId,
+    staleTime: 0,
+  })
+}
+
+export function useNewSession() {
+  const qc = useQueryClient()
+  const setActive = useChatStore((s) => s.setActiveSessionId)
+  return useMutation<{ session_id: string }, ApiError, void>({
+    mutationFn: () => api.post<{ session_id: string }>("/api/chat/session/new"),
+    onSuccess: (d) => {
+      setActive(d.session_id)
+      qc.setQueryData<DisplayMessage[]>(KEYS.history(d.session_id), [])
+      qc.invalidateQueries({ queryKey: KEYS.sessions })
+      toast.success("已开启新会话")
+    },
+    onError: (e) => toast.error(e.message),
+  })
+}
+
+export function useChatSend() {
+  const qc = useQueryClient()
+  const setActive = useChatStore((s) => s.setActiveSessionId)
+  return useMutation<ChatAnswer, ApiError, { session_id: string | null; text: string }, { prev: string | null }>({
+    mutationFn: (v) => api.post<ChatAnswer>("/api/chat/send", { session_id: v.session_id ?? undefined, text: v.text }),
+    onMutate: (v) => { append(qc, v.session_id, userMsg(v.text)); return { prev: v.session_id } },
+    onSuccess: (d, _, ctx) => {
+      if (ctx?.prev !== d.session_id) handleNewSession(qc, ctx?.prev ?? null, d.session_id, setActive, [botMsg(d)])
+      else append(qc, d.session_id, botMsg(d))
+      qc.invalidateQueries({ queryKey: KEYS.sessions })
+    },
+    onError: (e, v) => {
+      append(qc, v.session_id, { role: "bot", content: `❌ ${e.message}`, msg_type: "text", created_at: new Date().toISOString() })
+      toast.error(e.message)
+    },
+  })
+}
+
+export function useVoiceUpload() {
+  const qc = useQueryClient()
+  const setActive = useChatStore((s) => s.setActiveSessionId)
+  return useMutation<VoiceResponse, ApiError, { audio: Blob; session_id: string | null }, { prev: string | null }>({
+    mutationFn: (v) => {
+      const fd = new FormData()
+      fd.append("audio", v.audio, "recording.webm")
+      if (v.session_id) fd.append("session_id", v.session_id)
+      return api.upload<VoiceResponse>("/api/voice/upload", fd)
+    },
+    onMutate: (v) => { append(qc, v.session_id, userMsg("🎤 语音识别中…", "voice")); return { prev: v.session_id } },
+    onSuccess: (d, _, ctx) => {
+      const real = [userMsg(d.text || "（语音内容为空）", "voice"), botMsg(d)]
+      if (ctx?.prev !== d.session_id) handleNewSession(qc, ctx?.prev ?? null, d.session_id, setActive, real, true)
+      else replacePlaceholder(qc, d.session_id, ...real)
+      qc.invalidateQueries({ queryKey: KEYS.sessions })
+    },
+    onError: (e, v) => { replacePlaceholder(qc, v.session_id); toast.error(e.message) },
+  })
+}
+
+export function useImageUpload() {
+  const qc = useQueryClient()
+  const setActive = useChatStore((s) => s.setActiveSessionId)
+  return useMutation<ImageResponse, ApiError, { image: File; session_id: string | null }, { prev: string | null }>({
+    mutationFn: (v) => {
+      const fd = new FormData()
+      fd.append("image", v.image)
+      if (v.session_id) fd.append("session_id", v.session_id)
+      return api.upload<ImageResponse>("/api/image/upload", fd)
+    },
+    onMutate: (v) => { append(qc, v.session_id, userMsg(`🖼️ 图片识别中… (${v.image.name})`)); return { prev: v.session_id } },
+    onSuccess: (d, _, ctx) => {
+      const label = d.text || d.filename || "（图片内容为空）"
+      const real = [userMsg(`🖼️ ${label}`), botMsg(d)]
+      if (ctx?.prev !== d.session_id) handleNewSession(qc, ctx?.prev ?? null, d.session_id, setActive, real, true)
+      else replacePlaceholder(qc, d.session_id, ...real)
+      qc.invalidateQueries({ queryKey: KEYS.sessions })
+    },
+    onError: (e, v) => { replacePlaceholder(qc, v.session_id); toast.error(e.message) },
+  })
+}

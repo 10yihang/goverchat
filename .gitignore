@@ -1,0 +1,134 @@
+# ============================================================
+# 政务智聊 .gitignore
+# Python (Flask 后端) + Node (React/Vite 前端) + 多模态运行时产物
+# ============================================================
+
+# -------- Python --------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+develop-eggs/
+.installed.cfg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# 测试 / 覆盖率 / 类型检查 / 静态检查缓存
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+coverage.xml
+*.cover
+
+# -------- Node / Frontend (frontend/) --------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+frontend/.eslintcache
+frontend/*.local
+
+# Vite / npm / yarn / pnpm 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# -------- 构建产物（React → Flask 静态托管）--------
+# vite build 输出，由 frontend/npm run build 重新生成
+static/dist/
+
+# -------- 运行时上传 / 临时文件 --------
+uploads/voice/*
+uploads/images/*
+!uploads/voice/.gitkeep
+!uploads/images/.gitkeep
+
+# 项目自定义运行时目录
+.runtime/
+.codex-cache/
+
+# -------- 日志 --------
+*.log
+logs/
+log/
+
+# -------- 数据库本地文件 / 备份 --------
+*.sqlite
+*.sqlite3
+*.db
+*.sql.bak
+*.dump
+
+# -------- 密钥 / 环境配置 --------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# -------- 编辑器 / IDE --------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# -------- macOS / Windows / Linux 系统文件 --------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# -------- 模型缓存（Whisper 等，按需）--------
+# Whisper 默认在 ~/.cache/whisper，不在 repo 内；如有自定义路径可放开
+# models_cache/
+
+# -------- 旧前端归档（已存档，不应再追踪）--------
+_archive_old_frontend/
+
+# -------- 文档构建产物 --------
+docs/_build/
+docs/.doctrees/
+~$*.docx
+~$*.doc
+~$*.xlsx
+
+# -------- 临时文件 --------
+*.tmp
+*.temp
+*.bak
+*.orig
+
+
+docs/*

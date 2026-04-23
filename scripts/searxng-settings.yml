@@ -1,0 +1,17 @@
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "Gov Chat SearXNG"
+
+search:
+  safe_search: 1
+  autocomplete: "duckduckgo"
+  formats:
+    - html
+    - json
+
+server:
+  limiter: false
+  image_proxy: true
+  secret_key: "gov-chat-searxng-2026-local-secret-key-change-me"
