@@ -34,6 +34,7 @@ class LLMService:
         self._client = None
         self._client_lock = threading.Lock()
         self._init_failure_until: float = 0.0
+        self._json_mode_unsupported: bool = False
 
     def is_enabled(self) -> bool:
         return (
@@ -126,29 +127,62 @@ class LLMService:
         if client is None:
             return self._fallback_keyword(text, reason="LLM 客户端不可用")
 
-        user_prompt = f"用户输入：{text}\n候选事项：{candidate_service_title or '（无）'}\n请分类。"
+        user_prompt = (
+            f"用户输入：{text}\n候选事项：{candidate_service_title or '（无）'}\n"
+            "请只用 JSON 回复，不要 markdown 代码块、不要任何解释。"
+        )
+        messages = [
+            {"role": "system", "content": _INTENT_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+
         try:
-            response = client.chat.completions.create(
-                model=config.LLM_MODEL,
-                temperature=config.LLM_TEMPERATURE,
-                messages=[
-                    {"role": "system", "content": _INTENT_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                response_format={"type": "json_object"},
+            raw = self._chat_completion(
+                client, messages, use_json_mode=not self._json_mode_unsupported
             )
-            raw = (response.choices[0].message.content or "").strip()
-            parsed = self._parse_intent_json(raw)
-            if parsed is None:
-                logger.warning("[LLM] 响应不是合法 JSON，降级。raw=%s", raw[:200])
-                return self._fallback_keyword(text, reason="LLM 响应格式错")
-            parsed["source"] = "llm"
-            return parsed
         except Exception as exc:
-            logger.warning("[LLM] 调用失败 err=%s 降级到关键字", exc)
-            return self._fallback_keyword(
-                text, reason=f"LLM 失败: {type(exc).__name__}"
-            )
+            err_str = str(exc)
+            if not self._json_mode_unsupported and (
+                "Json mode" in err_str
+                or "response_format" in err_str
+                or "json_object" in err_str
+            ):
+                logger.warning(
+                    "[LLM] 模型不支持 JSON mode，永久降级到 prompt-only 解析"
+                )
+                self._json_mode_unsupported = True
+                try:
+                    raw = self._chat_completion(client, messages, use_json_mode=False)
+                except Exception as exc2:
+                    logger.warning(
+                        "[LLM] prompt-only 重试仍失败 err=%s 降级到关键字", exc2
+                    )
+                    return self._fallback_keyword(
+                        text, reason=f"LLM 失败: {type(exc2).__name__}"
+                    )
+            else:
+                logger.warning("[LLM] 调用失败 err=%s 降级到关键字", exc)
+                return self._fallback_keyword(
+                    text, reason=f"LLM 失败: {type(exc).__name__}"
+                )
+
+        parsed = self._parse_intent_json(raw)
+        if parsed is None:
+            logger.warning("[LLM] 响应不是合法 JSON，降级。raw=%s", raw[:200])
+            return self._fallback_keyword(text, reason="LLM 响应格式错")
+        parsed["source"] = "llm"
+        return parsed
+
+    def _chat_completion(self, client, messages: list, use_json_mode: bool) -> str:
+        kwargs = {
+            "model": config.LLM_MODEL,
+            "temperature": config.LLM_TEMPERATURE,
+            "messages": messages,
+        }
+        if use_json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+        response = client.chat.completions.create(**kwargs)
+        return (response.choices[0].message.content or "").strip()
 
     @staticmethod
     def _parse_intent_json(raw: str) -> dict | None:
