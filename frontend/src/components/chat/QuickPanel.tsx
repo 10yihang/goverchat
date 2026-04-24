@@ -20,7 +20,7 @@ interface QuickPanelProps {
 export function QuickPanel({ onQuickQuestion, serviceCard }: QuickPanelProps) {
   return (
     <aside
-      className="flex h-full w-[320px] shrink-0 flex-col gap-5 overflow-y-auto border-l p-4"
+      className="chat-scroll flex h-full w-[320px] shrink-0 flex-col gap-5 overflow-y-auto border-l p-4"
       style={{ borderColor: "var(--color-border)" }}
     >
       <section>

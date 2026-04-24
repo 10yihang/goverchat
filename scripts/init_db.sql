@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS chat_message (
   msg_type     ENUM('text','voice') NOT NULL DEFAULT 'text',
   confidence   DECIMAL(6,4)    NOT NULL DEFAULT 0.0000,
   knowledge_id INT UNSIGNED    DEFAULT NULL,
+  service_card JSON            NULL COMMENT '办事卡片快照',
+  form_prompt  JSON            NULL COMMENT '表单提示快照',
   created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   INDEX idx_session (session_id),

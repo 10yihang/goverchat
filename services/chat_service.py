@@ -121,6 +121,8 @@ class ChatService:
                 msg_type="text",
                 confidence=result["confidence"],
                 knowledge_id=result["knowledge_id"],
+                service_card=result.get("service_card"),
+                form_prompt=result.get("form_prompt"),
             )
         except Exception as e:
             logger.warning("[ChatService] Bot 消息持久化失败：%s", e)

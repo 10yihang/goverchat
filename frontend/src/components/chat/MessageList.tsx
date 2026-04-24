@@ -53,11 +53,11 @@ export function MessageList({ messages, isLoading, isPending }: MessageListProps
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages.length, isPending])
 
-  if (isLoading) return <LoadingSkeleton />
-  if (messages.length === 0 && !isPending) return <EmptyState />
+  if (isLoading) return <div className="flex-1 overflow-hidden"><LoadingSkeleton /></div>
+  if (messages.length === 0 && !isPending) return <div className="flex flex-1 overflow-hidden"><EmptyState /></div>
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-4">
+    <div className="chat-scroll flex-1 overflow-y-auto px-6 py-4">
       <div className="mx-auto max-w-3xl space-y-5">
         {messages.map((msg, i) => (
           <MessageBubble key={`${msg.created_at ?? ""}-${i}`} message={msg} />

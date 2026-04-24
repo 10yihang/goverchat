@@ -46,7 +46,7 @@ export function SessionSidebar({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 pb-2">
+      <div className="chat-scroll flex-1 overflow-y-auto px-2 pb-2">
         {isLoading && (
           <div className="space-y-2 px-2">
             {Array.from({ length: 5 }).map((_, i) => (

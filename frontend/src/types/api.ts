@@ -135,6 +135,8 @@ export interface ChatMessage {
   confidence?: number
   knowledge_id?: number | null
   created_at?: string
+  service_card?: ServiceCard | null
+  form_prompt?: FormPrompt | null
 }
 
 export interface SessionSummary {

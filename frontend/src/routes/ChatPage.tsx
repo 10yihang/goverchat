@@ -84,8 +84,8 @@ export default function ChatPage() {
   )
 
   return (
-    <div className="flex" style={{ height: "calc(100vh - var(--header-h, 56px) - var(--footer-h, 48px))" }}>
-      <div className="hidden lg:block">
+    <div className="flex h-full overflow-hidden">
+      <div className="hidden min-h-0 lg:block">
         <SessionSidebar
           sessions={sessions.data} isLoading={sessions.isLoading}
           activeId={activeId} onSelect={handleSelectSession}
@@ -100,7 +100,7 @@ export default function ChatPage() {
         onNew={() => newSession.mutate()} isCreating={newSession.isPending}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center lg:hidden">
           <Button variant="ghost" size="icon" onClick={() => setDrawerOpen(true)} className="ml-2">
             <Menu className="h-5 w-5" />
@@ -125,7 +125,7 @@ export default function ChatPage() {
         />
       </main>
 
-      <div className="hidden lg:block">
+      <div className="hidden min-h-0 lg:block">
         <QuickPanel onQuickQuestion={handleQuickQuestion} serviceCard={latestServiceCard} />
       </div>
 

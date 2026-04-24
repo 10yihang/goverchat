@@ -3,6 +3,7 @@ from __future__ import annotations
 """
 chat_session + chat_message 表操作
 """
+import json
 import uuid
 from models.db import execute
 
@@ -142,43 +143,70 @@ def add_message(
     msg_type: str = "text",
     confidence: float = 0.0,
     knowledge_id: int = None,
+    service_card: dict | None = None,
+    form_prompt: dict | None = None,
 ) -> int:
-    """
-    向指定会话追加一条消息，返回消息 ID。
-
-    Args:
-        session_id:   会话 UUID
-        role:         'user' | 'bot'
-        content:      消息内容
-        msg_type:     'text' | 'voice'
-        confidence:   TF-IDF 相似度得分（0~1）
-        knowledge_id: 命中的知识条目 ID（兜底时为 None）
-    """
     sql = """
         INSERT INTO chat_message
-            (session_id, role, content, msg_type, confidence, knowledge_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
+            (session_id, role, content, msg_type, confidence, knowledge_id,
+             service_card, form_prompt)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
+
+    def _safe_dumps(value, label):
+        if not value:
+            return None
+        try:
+            return json.dumps(value, ensure_ascii=False, default=str)
+        except (TypeError, ValueError) as exc:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "[Conversation] %s 序列化失败，按 None 入库: %s", label, exc
+            )
+            return None
+
     return execute(
         sql,
-        (session_id, role, content, msg_type, confidence, knowledge_id),
+        (
+            session_id,
+            role,
+            content,
+            msg_type,
+            confidence,
+            knowledge_id,
+            _safe_dumps(service_card, "service_card"),
+            _safe_dumps(form_prompt, "form_prompt"),
+        ),
         commit=True,
     )
 
 
+def _parse_json_field(value):
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return value
+    try:
+        return json.loads(value)
+    except (ValueError, TypeError):
+        return None
+
+
 def get_messages(session_id: str) -> list[dict]:
-    """
-    按时间正序获取指定会话全部消息。
-    返回字段：id, role, content, msg_type, confidence, knowledge_id, created_at
-    """
     sql = """
         SELECT id, role, content, msg_type, confidence, knowledge_id,
+               service_card, form_prompt,
                DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS created_at
         FROM chat_message
         WHERE session_id = %s
         ORDER BY id ASC
     """
-    return execute(sql, (session_id,), fetchall=True) or []
+    rows = execute(sql, (session_id,), fetchall=True) or []
+    for row in rows:
+        row["service_card"] = _parse_json_field(row.get("service_card"))
+        row["form_prompt"] = _parse_json_field(row.get("form_prompt"))
+    return rows
 
 
 def delete_session_messages(session_id: str) -> None:
