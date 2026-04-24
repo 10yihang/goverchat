@@ -265,3 +265,39 @@ export interface AdminUser extends AuthUser {
   is_active: number
   created_at?: string
 }
+
+export interface HallHours {
+  weekday: string
+  saturday: string | null
+  sunday: string | null
+}
+
+export interface Hall {
+  id: string
+  name: string
+  short_name: string
+  address: string
+  lat: number
+  lng: number
+  phone: string
+  city: string
+  district: string
+  hours: HallHours
+  services: string[]
+  windows: number
+  tags: string[]
+  parking: boolean
+  transit: string
+  distance?: number
+  wait_count?: number
+}
+
+export interface HallsResponse {
+  halls: Hall[]
+}
+
+export interface HallRecommend {
+  halls: Hall[]
+  service_slug: string
+  service_title: string
+}

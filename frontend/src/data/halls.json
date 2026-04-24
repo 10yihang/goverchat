@@ -1,0 +1,326 @@
+{
+  "halls": [
+    {
+      "id": "hall-beijing-chaoyang",
+      "name": "北京市朝阳区政务服务中心",
+      "short_name": "朝阳政务中心",
+      "address": "北京市朝阳区朝外大街乙6号朝外SOHO·C座",
+      "lat": 39.9215,
+      "lng": 116.4551,
+      "phone": "010-85976988",
+      "city": "北京",
+      "district": "朝阳区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-transfer",
+        "violation-handling",
+        "plate-service"
+      ],
+      "windows": 24,
+      "tags": ["综合政务", "驾驶证", "车管"],
+      "parking": true,
+      "transit": "地铁6号线朝外大街站B口步行5分钟"
+    },
+    {
+      "id": "hall-beijing-haidian",
+      "name": "北京市海淀区政务服务中心",
+      "short_name": "海淀政务中心",
+      "address": "北京市海淀区复兴路69号",
+      "lat": 39.9074,
+      "lng": 116.3127,
+      "phone": "010-82620001",
+      "city": "北京",
+      "district": "海淀区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-inspection",
+        "vehicle-transfer",
+        "plate-service"
+      ],
+      "windows": 20,
+      "tags": ["综合政务", "驾驶证", "车管"],
+      "parking": true,
+      "transit": "地铁1号线玉泉路站步行8分钟"
+    },
+    {
+      "id": "hall-beijing-dongcheng",
+      "name": "北京市东城区政务服务中心",
+      "short_name": "东城政务中心",
+      "address": "北京市东城区交道口南大街136号",
+      "lat": 39.9394,
+      "lng": 116.4034,
+      "phone": "010-64017111",
+      "city": "北京",
+      "district": "东城区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": null,
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "violation-handling"
+      ],
+      "windows": 16,
+      "tags": ["综合政务", "驾驶证"],
+      "parking": false,
+      "transit": "地铁2号线鼓楼大街站步行10分钟"
+    },
+    {
+      "id": "hall-beijing-xicheng",
+      "name": "北京市西城区政务服务中心",
+      "short_name": "西城政务中心",
+      "address": "北京市西城区广安门外大街312号",
+      "lat": 39.8969,
+      "lng": 116.3563,
+      "phone": "010-63523333",
+      "city": "北京",
+      "district": "西城区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "vehicle-transfer",
+        "plate-service",
+        "ride-hailing-license"
+      ],
+      "windows": 18,
+      "tags": ["综合政务", "车管", "营运资质"],
+      "parking": true,
+      "transit": "地铁4号线菜市口站步行6分钟"
+    },
+    {
+      "id": "hall-beijing-fengtai",
+      "name": "北京市丰台区车辆管理所",
+      "short_name": "丰台车管所",
+      "address": "北京市丰台区南四环西路188号",
+      "lat": 39.8582,
+      "lng": 116.3012,
+      "phone": "010-83287777",
+      "city": "北京",
+      "district": "丰台区",
+      "hours": {
+        "weekday": "08:30-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-inspection",
+        "vehicle-transfer",
+        "plate-service",
+        "ride-hailing-license"
+      ],
+      "windows": 30,
+      "tags": ["车管所", "驾驶证", "车辆年检", "号牌"],
+      "parking": true,
+      "transit": "地铁10号线成寿寺站步行15分钟"
+    },
+    {
+      "id": "hall-beijing-shunyi",
+      "name": "北京市顺义区政务服务中心",
+      "short_name": "顺义政务中心",
+      "address": "北京市顺义区光明南街19号",
+      "lat": 40.1301,
+      "lng": 116.6545,
+      "phone": "010-69446888",
+      "city": "北京",
+      "district": "顺义区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": null,
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "vehicle-inspection",
+        "vehicle-transfer",
+        "violation-handling"
+      ],
+      "windows": 14,
+      "tags": ["综合政务", "车管"],
+      "parking": true,
+      "transit": "公交顺义新城公交枢纽步行5分钟"
+    },
+    {
+      "id": "hall-shanghai-pudong",
+      "name": "上海市浦东新区政务服务中心",
+      "short_name": "浦东政务中心",
+      "address": "上海市浦东新区民生路1398号",
+      "lat": 31.2304,
+      "lng": 121.5445,
+      "phone": "021-58582233",
+      "city": "上海",
+      "district": "浦东新区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-transfer",
+        "violation-handling",
+        "plate-service"
+      ],
+      "windows": 28,
+      "tags": ["综合政务", "驾驶证", "车管"],
+      "parking": true,
+      "transit": "地铁6号线民生路站步行3分钟"
+    },
+    {
+      "id": "hall-shanghai-jing-an",
+      "name": "上海市静安区政务服务中心",
+      "short_name": "静安政务中心",
+      "address": "上海市静安区万荣路1号",
+      "lat": 31.2636,
+      "lng": 121.4575,
+      "phone": "021-52850000",
+      "city": "上海",
+      "district": "静安区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-inspection",
+        "violation-handling"
+      ],
+      "windows": 22,
+      "tags": ["综合政务", "驾驶证"],
+      "parking": false,
+      "transit": "地铁13号线万荣路站步行5分钟"
+    },
+    {
+      "id": "hall-shanghai-minhang",
+      "name": "上海市闵行区车辆管理所",
+      "short_name": "闵行车管所",
+      "address": "上海市闵行区吴中路1801号",
+      "lat": 31.1509,
+      "lng": 121.3977,
+      "phone": "021-54851234",
+      "city": "上海",
+      "district": "闵行区",
+      "hours": {
+        "weekday": "08:30-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-inspection",
+        "vehicle-transfer",
+        "plate-service",
+        "ride-hailing-license"
+      ],
+      "windows": 32,
+      "tags": ["车管所", "驾驶证", "车辆年检", "号牌", "营运资质"],
+      "parking": true,
+      "transit": "地铁5号线东川路站步行12分钟"
+    },
+    {
+      "id": "hall-hangzhou-xihu",
+      "name": "杭州市西湖区政务服务中心",
+      "short_name": "西湖政务中心",
+      "address": "杭州市西湖区留下街道荆长路500号",
+      "lat": 30.2741,
+      "lng": 120.0585,
+      "phone": "0571-87012345",
+      "city": "杭州",
+      "district": "西湖区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-transfer",
+        "violation-handling"
+      ],
+      "windows": 16,
+      "tags": ["综合政务", "驾驶证", "车管"],
+      "parking": true,
+      "transit": "公交西湖区政府站步行3分钟"
+    },
+    {
+      "id": "hall-hangzhou-gongshu",
+      "name": "杭州市拱墅区政务服务中心",
+      "short_name": "拱墅政务中心",
+      "address": "杭州市拱墅区祥园路99号",
+      "lat": 30.3312,
+      "lng": 120.1278,
+      "phone": "0571-88056666",
+      "city": "杭州",
+      "district": "拱墅区",
+      "hours": {
+        "weekday": "09:00-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "vehicle-inspection",
+        "vehicle-transfer",
+        "plate-service",
+        "ride-hailing-license"
+      ],
+      "windows": 20,
+      "tags": ["综合政务", "车管", "营运资质"],
+      "parking": true,
+      "transit": "地铁5号线祥园路站步行8分钟"
+    },
+    {
+      "id": "hall-hangzhou-jianggan",
+      "name": "杭州市江干区车辆管理所",
+      "short_name": "江干车管所",
+      "address": "杭州市江干区九环路189号",
+      "lat": 30.2685,
+      "lng": 120.2198,
+      "phone": "0571-96122",
+      "city": "杭州",
+      "district": "江干区",
+      "hours": {
+        "weekday": "08:30-17:00",
+        "saturday": "09:00-12:00",
+        "sunday": null
+      },
+      "services": [
+        "driver-license-renewal",
+        "driver-license-reissue",
+        "vehicle-inspection",
+        "vehicle-transfer",
+        "plate-service",
+        "ride-hailing-license",
+        "violation-handling"
+      ],
+      "windows": 26,
+      "tags": ["车管所", "驾驶证", "车辆年检", "号牌", "违法处理"],
+      "parking": true,
+      "transit": "公交九环路站步行3分钟"
+    }
+  ]
+}

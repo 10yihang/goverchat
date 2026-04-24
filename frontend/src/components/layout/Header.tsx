@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/chat", label: "智能咨询" },
   { to: "/guide", label: "业务引导" },
   { to: "/service-center", label: "办事服务" },
+  { to: "/halls", label: "附近大厅" },
   { to: "/docs", label: "接口文档" },
 ]
 

@@ -1,0 +1,988 @@
+{
+  "items": [
+    {
+      "slug": "driver-license-renewal",
+      "title": "驾驶证期满换证",
+      "category": "驾驶证服务",
+      "summary": "适用于驾驶证即将到期或已到期后的换证办理场景。",
+      "conditions": [
+        "驾驶证应在有效期满前 90 日内或逾期后法定可办期限内申请。",
+        "申请人应完成规定的驾驶人体检。",
+        "不存在依法被扣留、注销、吊销等影响办理的情形。"
+      ],
+      "materials": [
+        "申请人身份证明",
+        "原驾驶证",
+        "近期证件照片或电子照片回执",
+        "县级以上医疗机构出具的体检证明"
+      ],
+      "process_steps": [
+        "确认换证时限和当前驾驶证状态。",
+        "提前完成驾驶人体检并准备照片。",
+        "通过线上平台提交申请，或到车管所、政务服务中心窗口办理。",
+        "选择邮寄或现场领取方式，等待新证制发。"
+      ],
+      "channels": [
+        {
+          "name": "交管业务线上平台",
+          "type": "online",
+          "url": "https://gab.122.gov.cn/"
+        },
+        {
+          "name": "车管所窗口",
+          "type": "offline",
+          "url": ""
+        },
+        {
+          "name": "政务服务中心",
+          "type": "offline",
+          "url": ""
+        }
+      ],
+      "faq": [
+        {
+          "q": "换证前有违法未处理怎么办？",
+          "a": "建议先核验并处理影响业务受理的违法记录后再办理。"
+        },
+        {
+          "q": "逾期后还能换证吗？",
+          "a": "是否可办取决于逾期时长和当地规则，建议先在智能咨询中确认。"
+        }
+      ],
+      "tips": [
+        "如同步变更联系方式，可在办理时一并更新。",
+        "建议提前预约，减少现场等待时间。"
+      ],
+      "entry_label": "在线申请换证",
+      "entry_url": "https://gab.122.gov.cn/",
+      "qa_seed": "驾驶证期满换证需要什么材料",
+      "keywords": [
+        "驾驶证",
+        "换证",
+        "期满换证",
+        "到期换证",
+        "体检",
+        "照片"
+      ],
+      "download_name": "驾驶证期满换证材料清单.txt",
+      "download_url": "/static/downloads/driver-license-renewal.txt",
+      "is_active": 1,
+      "form_schema": {
+        "submit_label": "提交驾驶证换证申请",
+        "intro": "请如实填写以下信息，提交后系统将生成受理编号并通过邮件通知您进度。",
+        "fields": [
+          {
+            "name": "name",
+            "label": "姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入证件姓名",
+            "max_length": 50
+          },
+          {
+            "name": "id_number",
+            "label": "身份证号",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入 18 位身份证号",
+            "pattern": "^[0-9Xx]{15,18}$"
+          },
+          {
+            "name": "phone",
+            "label": "手机号",
+            "type": "tel",
+            "required": true,
+            "placeholder": "请输入 11 位手机号",
+            "pattern": "^1[3-9]\\d{9}$"
+          },
+          {
+            "name": "license_no",
+            "label": "驾驶证档案编号",
+            "type": "text",
+            "required": true,
+            "placeholder": "12 位档案编号（驾驶证副页可见）"
+          },
+          {
+            "name": "expire_date",
+            "label": "驾驶证到期日期",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "physical_check_date",
+            "label": "体检完成日期",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "delivery_method",
+            "label": "新证领取方式",
+            "type": "select",
+            "required": true,
+            "options": [
+              "邮寄送达",
+              "本人到指定地点自取"
+            ]
+          },
+          {
+            "name": "delivery_address",
+            "label": "邮寄地址（选邮寄时必填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "省市区 + 详细地址",
+            "max_length": 200
+          },
+          {
+            "name": "remark",
+            "label": "备注（选填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "如有特殊情况可在此说明",
+            "max_length": 300
+          }
+        ]
+      }
+    },
+    {
+      "slug": "driver-license-reissue",
+      "title": "驾驶证遗失补证",
+      "category": "驾驶证服务",
+      "summary": "适用于驾驶证遗失、损毁、无法正常使用时的补证和换领业务。",
+      "conditions": [
+        "驾驶证状态正常，可依法申请补证或换领。",
+        "申请人身份信息应与驾驶证登记信息一致。"
+      ],
+      "materials": [
+        "申请人身份证明",
+        "驾驶证遗失说明或损毁证件",
+        "证件照片或电子照片回执"
+      ],
+      "process_steps": [
+        "确认驾驶证状态正常且无业务限制。",
+        "在线提交补证申请或到窗口填写申请表。",
+        "核验身份信息、照片及邮寄地址。",
+        "缴费后等待邮寄或到指定地点领取新证。"
+      ],
+      "channels": [
+        {
+          "name": "交管业务线上平台",
+          "type": "online",
+          "url": "https://gab.122.gov.cn/"
+        },
+        {
+          "name": "车管所窗口",
+          "type": "offline",
+          "url": ""
+        }
+      ],
+      "faq": [
+        {
+          "q": "补证期间能否继续驾驶？",
+          "a": "建议先向当地车管部门确认临时凭证或电子证照使用规则。"
+        },
+        {
+          "q": "损毁换领需要交回旧证吗？",
+          "a": "通常需要交回原损毁证件。"
+        }
+      ],
+      "tips": [
+        "遗失补证前可先确认驾驶证电子信息是否正常。",
+        "损毁证件建议一并携带原件，减少重复核验。"
+      ],
+      "entry_label": "在线申请补证",
+      "entry_url": "https://gab.122.gov.cn/",
+      "qa_seed": "驾驶证丢了怎么补办",
+      "keywords": [
+        "驾驶证",
+        "补证",
+        "遗失补证",
+        "驾驶证丢了",
+        "损毁换领"
+      ],
+      "download_name": "驾驶证遗失补证材料清单.txt",
+      "download_url": "/static/downloads/driver-license-reissue.txt",
+      "is_active": 1,
+      "form_schema": {
+        "submit_label": "提交驾驶证补证申请",
+        "intro": "请填写以下信息提交补证申请，系统将自动核验您的驾驶证状态。",
+        "fields": [
+          {
+            "name": "name",
+            "label": "姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入证件姓名",
+            "max_length": 50
+          },
+          {
+            "name": "id_number",
+            "label": "身份证号",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入 18 位身份证号",
+            "pattern": "^[0-9Xx]{15,18}$"
+          },
+          {
+            "name": "phone",
+            "label": "手机号",
+            "type": "tel",
+            "required": true,
+            "placeholder": "请输入 11 位手机号",
+            "pattern": "^1[3-9]\\d{9}$"
+          },
+          {
+            "name": "lost_reason",
+            "label": "补证原因",
+            "type": "select",
+            "required": true,
+            "options": [
+              "遗失",
+              "损毁",
+              "其他"
+            ]
+          },
+          {
+            "name": "lost_date",
+            "label": "证件遗失/损毁日期（约略）",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "delivery_method",
+            "label": "新证领取方式",
+            "type": "select",
+            "required": true,
+            "options": [
+              "邮寄送达",
+              "本人到指定地点自取"
+            ]
+          },
+          {
+            "name": "delivery_address",
+            "label": "邮寄地址（选邮寄时必填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "省市区 + 详细地址",
+            "max_length": 200
+          },
+          {
+            "name": "remark",
+            "label": "备注（选填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "如有特殊情况可在此说明",
+            "max_length": 300
+          }
+        ]
+      }
+    },
+    {
+      "slug": "vehicle-inspection",
+      "title": "机动车年检预约",
+      "category": "机动车服务",
+      "summary": "适用于机动车定期检验、上线检测和年检预约场景。",
+      "conditions": [
+        "车辆处于可检验状态。",
+        "已购买有效交强险。",
+        "无影响业务办理的重大违法未处理事项。"
+      ],
+      "materials": [
+        "机动车行驶证",
+        "有效交强险凭证",
+        "车主身份证明",
+        "车辆检验相关资料"
+      ],
+      "process_steps": [
+        "确认年检周期及车辆当前状态。",
+        "按需在线预约检测站或前往可办理机构。",
+        "携带材料完成外观检查、环保及安全检测。",
+        "检验合格后领取或更新检验标志。"
+      ],
+      "channels": [
+        {
+          "name": "年检预约平台",
+          "type": "online",
+          "url": "https://gab.122.gov.cn/"
+        },
+        {
+          "name": "检测站窗口",
+          "type": "offline",
+          "url": ""
+        }
+      ],
+      "faq": [
+        {
+          "q": "逾期年检能否办理？",
+          "a": "一般可办理，但可能伴随处罚或限制，建议先确认当地规则。"
+        },
+        {
+          "q": "电子检验标志是否通用？",
+          "a": "以当地交管政策为准，部分地区支持电子标志。"
+        }
+      ],
+      "tips": [
+        "上线前可先自查灯光、轮胎、警示牌等常见项目。",
+        "检测高峰期建议提前预约。"
+      ],
+      "entry_label": "预约车辆年检",
+      "entry_url": "https://gab.122.gov.cn/",
+      "qa_seed": "机动车年检怎么办理",
+      "keywords": [
+        "机动车",
+        "年检",
+        "检验",
+        "检车",
+        "上线检测",
+        "年审"
+      ],
+      "download_name": "机动车年检材料清单.txt",
+      "download_url": "/static/downloads/vehicle-inspection.txt",
+      "is_active": 1,
+      "form_schema": {
+        "submit_label": "预约机动车年检",
+        "intro": "请填写预约信息，工作人员审核后将通过短信/邮件确认到站时间。",
+        "fields": [
+          {
+            "name": "name",
+            "label": "姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入证件姓名",
+            "max_length": 50
+          },
+          {
+            "name": "phone",
+            "label": "手机号",
+            "type": "tel",
+            "required": true,
+            "placeholder": "请输入 11 位手机号",
+            "pattern": "^1[3-9]\\d{9}$"
+          },
+          {
+            "name": "plate_number",
+            "label": "车牌号",
+            "type": "text",
+            "required": true,
+            "placeholder": "如 苏A12345",
+            "max_length": 12
+          },
+          {
+            "name": "vehicle_type",
+            "label": "车辆类型",
+            "type": "select",
+            "required": true,
+            "options": [
+              "小型汽车",
+              "新能源乘用车",
+              "大型客车",
+              "货车",
+              "摩托车",
+              "其他"
+            ]
+          },
+          {
+            "name": "vin_last6",
+            "label": "车架号末 6 位",
+            "type": "text",
+            "required": true,
+            "placeholder": "用于身份核对",
+            "max_length": 6
+          },
+          {
+            "name": "preferred_date",
+            "label": "首选预约日期",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "preferred_time_slot",
+            "label": "首选时段",
+            "type": "select",
+            "required": true,
+            "options": [
+              "上午 09:00-11:30",
+              "下午 13:30-16:00",
+              "其他（备注说明）"
+            ]
+          },
+          {
+            "name": "station_preference",
+            "label": "意向检测站",
+            "type": "text",
+            "required": false,
+            "placeholder": "可填站名或区域，留空则系统就近分配",
+            "max_length": 80
+          },
+          {
+            "name": "remark",
+            "label": "备注（选填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "如有特殊情况可在此说明",
+            "max_length": 300
+          }
+        ]
+      }
+    },
+    {
+      "slug": "vehicle-transfer",
+      "title": "机动车过户转籍",
+      "category": "机动车服务",
+      "summary": "适用于二手车过户、车辆转籍和所有人变更等业务场景。",
+      "conditions": [
+        "车辆不存在查封、抵押未解除等影响转移登记的情形。",
+        "买卖双方证件齐全，车辆可正常查验。"
+      ],
+      "materials": [
+        "买卖双方身份证明",
+        "机动车登记证书",
+        "机动车行驶证",
+        "交易凭证或购车发票",
+        "交强险凭证"
+      ],
+      "process_steps": [
+        "确认车辆状态及转入地受理条件。",
+        "准备交易凭证和车辆证件，必要时进行车辆查验。",
+        "提交转移登记申请并办理选号、号牌处理。",
+        "领取新的行驶证和登记信息。"
+      ],
+      "channels": [
+        {
+          "name": "车管所窗口",
+          "type": "offline",
+          "url": ""
+        },
+        {
+          "name": "政务服务中心",
+          "type": "offline",
+          "url": ""
+        }
+      ],
+      "faq": [
+        {
+          "q": "异地过户前需要注意什么？",
+          "a": "需确认转入地排放标准、指标要求及受理规则。"
+        },
+        {
+          "q": "贷款车可以直接过户吗？",
+          "a": "通常需要先解除抵押登记。"
+        }
+      ],
+      "tips": [
+        "如涉及异地转籍，建议先确认档案转移时效。",
+        "提前核验车辆是否存在违法未处理记录。"
+      ],
+      "entry_label": "查看过户办理说明",
+      "entry_url": "https://gab.122.gov.cn/",
+      "qa_seed": "机动车过户需要什么手续",
+      "keywords": [
+        "过户",
+        "转籍",
+        "车辆过户",
+        "二手车",
+        "转移登记"
+      ],
+      "download_name": "机动车过户材料清单.txt",
+      "download_url": "/static/downloads/vehicle-transfer.txt",
+      "is_active": 1,
+      "form_schema": {
+        "submit_label": "提交机动车过户转籍申请",
+        "intro": "请填写买卖双方及车辆基本信息，提交后将由工作人员预约线下窗口办理时间。",
+        "fields": [
+          {
+            "name": "owner_name",
+            "label": "原车主姓名",
+            "type": "text",
+            "required": true,
+            "max_length": 50
+          },
+          {
+            "name": "owner_id_number",
+            "label": "原车主身份证号",
+            "type": "text",
+            "required": true,
+            "pattern": "^[0-9Xx]{15,18}$"
+          },
+          {
+            "name": "buyer_name",
+            "label": "新车主姓名",
+            "type": "text",
+            "required": true,
+            "max_length": 50
+          },
+          {
+            "name": "buyer_id_number",
+            "label": "新车主身份证号",
+            "type": "text",
+            "required": true,
+            "pattern": "^[0-9Xx]{15,18}$"
+          },
+          {
+            "name": "phone",
+            "label": "手机号",
+            "type": "tel",
+            "required": true,
+            "placeholder": "请输入 11 位手机号",
+            "pattern": "^1[3-9]\\d{9}$"
+          },
+          {
+            "name": "plate_number",
+            "label": "车牌号",
+            "type": "text",
+            "required": true,
+            "max_length": 12
+          },
+          {
+            "name": "transfer_type",
+            "label": "办理类型",
+            "type": "select",
+            "required": true,
+            "options": [
+              "本市过户",
+              "转入本市（外地→本地）",
+              "转出本市（本地→外地）"
+            ]
+          },
+          {
+            "name": "preferred_date",
+            "label": "首选预约日期",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "remark",
+            "label": "备注（选填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "如有特殊情况可在此说明",
+            "max_length": 300
+          }
+        ]
+      }
+    },
+    {
+      "slug": "violation-handling",
+      "title": "违法处理指引",
+      "category": "违法处理",
+      "summary": "适用于交通违法查询、记分处理、罚款缴纳和申诉咨询场景。",
+      "conditions": [
+        "申请人可提供对应驾驶证、行驶证或违法通知信息。",
+        "如需申诉，应保留必要证据材料。"
+      ],
+      "materials": [
+        "驾驶证",
+        "行驶证",
+        "身份证明",
+        "处罚决定书或违法通知信息"
+      ],
+      "process_steps": [
+        "通过平台或窗口查询违法记录。",
+        "核对违法时间、地点、记分和罚款金额。",
+        "根据类型在线处理、窗口处理或参加教育学习。",
+        "完成缴款后再次核验状态是否更新。"
+      ],
+      "channels": [
+        {
+          "name": "交管业务线上平台",
+          "type": "online",
+          "url": "https://gab.122.gov.cn/"
+        },
+        {
+          "name": "违法处理窗口",
+          "type": "offline",
+          "url": ""
+        }
+      ],
+      "faq": [
+        {
+          "q": "对违法记录有异议怎么办？",
+          "a": "可按规定申请复核或申诉，并提交相关证据。"
+        },
+        {
+          "q": "是否所有违法都能线上处理？",
+          "a": "部分复杂或特殊情形仍需线下办理。"
+        }
+      ],
+      "tips": [
+        "涉及较多记分或营运车辆业务时，建议优先咨询窗口办理条件。",
+        "缴款后可再次查询确认状态同步情况。"
+      ],
+      "entry_label": "在线查询违法记录",
+      "entry_url": "https://gab.122.gov.cn/",
+      "qa_seed": "违章查询和处理流程是什么",
+      "keywords": [
+        "违法",
+        "违章",
+        "罚款",
+        "扣分",
+        "申诉",
+        "违法处理"
+      ],
+      "download_name": "违法处理材料清单.txt",
+      "download_url": "/static/downloads/violation-handling.txt",
+      "is_active": 1,
+      "form_schema": {
+        "submit_label": "提交违法处理申请",
+        "intro": "请如实填写违法记录信息，提交后将进入复核排期。",
+        "fields": [
+          {
+            "name": "name",
+            "label": "姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入证件姓名",
+            "max_length": 50
+          },
+          {
+            "name": "id_number",
+            "label": "身份证号",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入 18 位身份证号",
+            "pattern": "^[0-9Xx]{15,18}$"
+          },
+          {
+            "name": "phone",
+            "label": "手机号",
+            "type": "tel",
+            "required": true,
+            "placeholder": "请输入 11 位手机号",
+            "pattern": "^1[3-9]\\d{9}$"
+          },
+          {
+            "name": "decision_no",
+            "label": "违法决定书 / 通知书编号",
+            "type": "text",
+            "required": true,
+            "placeholder": "如 32010012025********",
+            "max_length": 30
+          },
+          {
+            "name": "violation_date",
+            "label": "违法发生日期",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "plate_number",
+            "label": "涉及车牌号",
+            "type": "text",
+            "required": true,
+            "max_length": 12
+          },
+          {
+            "name": "handling_method",
+            "label": "处理方式",
+            "type": "select",
+            "required": true,
+            "options": [
+              "接受处罚并缴款",
+              "申请陈述申辩",
+              "申请行政复议"
+            ]
+          },
+          {
+            "name": "remark",
+            "label": "备注（选填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "如有特殊情况可在此说明",
+            "max_length": 300
+          }
+        ]
+      }
+    },
+    {
+      "slug": "plate-service",
+      "title": "号牌补领服务",
+      "category": "号牌服务",
+      "summary": "适用于机动车号牌遗失、损毁补领，以及选号、换牌等业务场景。",
+      "conditions": [
+        "车辆登记信息正常。",
+        "如属损毁换领，需按要求交回原号牌。"
+      ],
+      "materials": [
+        "车主身份证明",
+        "机动车行驶证",
+        "机动车登记证书",
+        "原号牌或遗失说明"
+      ],
+      "process_steps": [
+        "确认办理类型为补领、换领或选号。",
+        "在线预约或到窗口提交申请并完成核验。",
+        "缴费后选择邮寄或现场领取号牌。",
+        "安装新号牌并确认车辆信息同步更新。"
+      ],
+      "channels": [
+        {
+          "name": "交管业务线上平台",
+          "type": "online",
+          "url": "https://gab.122.gov.cn/"
+        },
+        {
+          "name": "车管所窗口",
+          "type": "offline",
+          "url": ""
+        }
+      ],
+      "faq": [
+        {
+          "q": "号牌损毁补领是否必须交回原牌？",
+          "a": "通常需要交回原损毁号牌。"
+        },
+        {
+          "q": "新车选号有时间限制吗？",
+          "a": "通常存在办理时限，建议与注册登记同步完成。"
+        }
+      ],
+      "tips": [
+        "补牌前建议先确认是否存在未办结车辆业务。",
+        "安装后应及时核验电子证照是否同步更新。"
+      ],
+      "entry_label": "在线办理号牌业务",
+      "entry_url": "https://gab.122.gov.cn/",
+      "qa_seed": "机动车号牌丢失怎么补办",
+      "keywords": [
+        "号牌",
+        "补牌",
+        "车牌",
+        "选号",
+        "换牌",
+        "牌照"
+      ],
+      "download_name": "号牌补领材料清单.txt",
+      "download_url": "/static/downloads/plate-service.txt",
+      "is_active": 1,
+      "form_schema": {
+        "submit_label": "提交号牌补领申请",
+        "intro": "请填写以下信息申请补领号牌，受理后将通过邮件通知您领取或邮寄安排。",
+        "fields": [
+          {
+            "name": "name",
+            "label": "姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入证件姓名",
+            "max_length": 50
+          },
+          {
+            "name": "id_number",
+            "label": "身份证号",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入 18 位身份证号",
+            "pattern": "^[0-9Xx]{15,18}$"
+          },
+          {
+            "name": "phone",
+            "label": "手机号",
+            "type": "tel",
+            "required": true,
+            "placeholder": "请输入 11 位手机号",
+            "pattern": "^1[3-9]\\d{9}$"
+          },
+          {
+            "name": "plate_number",
+            "label": "原号牌号码",
+            "type": "text",
+            "required": true,
+            "max_length": 12
+          },
+          {
+            "name": "service_type",
+            "label": "申请类别",
+            "type": "select",
+            "required": true,
+            "options": [
+              "补领号牌",
+              "换领号牌",
+              "号牌损毁更换"
+            ]
+          },
+          {
+            "name": "lost_or_damaged_plate_count",
+            "label": "丢失/损毁号牌数量",
+            "type": "select",
+            "required": true,
+            "options": [
+              "1 块（前牌或后牌）",
+              "2 块（前后牌均涉及）"
+            ]
+          },
+          {
+            "name": "delivery_method",
+            "label": "领取方式",
+            "type": "select",
+            "required": true,
+            "options": [
+              "邮寄送达",
+              "本人到指定地点自取"
+            ]
+          },
+          {
+            "name": "delivery_address",
+            "label": "邮寄地址（选邮寄时必填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "省市区 + 详细地址",
+            "max_length": 200
+          },
+          {
+            "name": "remark",
+            "label": "备注（选填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "如有特殊情况可在此说明",
+            "max_length": 300
+          }
+        ]
+      }
+    },
+    {
+      "slug": "ride-hailing-license",
+      "title": "网约车从业资格申请",
+      "category": "营运从业",
+      "summary": "适用于网约车驾驶员从业资格、车辆准入和经营许可咨询场景。",
+      "conditions": [
+        "满足当地驾驶员资格、车辆准入和平台接入条件。",
+        "申请材料完整并符合当地交通运输主管部门要求。"
+      ],
+      "materials": [
+        "申请人身份证明",
+        "驾驶证",
+        "无犯罪记录等证明材料",
+        "车辆登记信息",
+        "平台接入相关材料"
+      ],
+      "process_steps": [
+        "确认当地网约车驾驶员和车辆准入条件。",
+        "按要求报名考试或参加背景审核。",
+        "取得资格后办理车辆许可或平台接入手续。",
+        "按规定参加继续教育、年审和合规检查。"
+      ],
+      "channels": [
+        {
+          "name": "交通运输业务平台",
+          "type": "online",
+          "url": "https://www.mot.gov.cn/"
+        },
+        {
+          "name": "运输管理窗口",
+          "type": "offline",
+          "url": ""
+        }
+      ],
+      "faq": [
+        {
+          "q": "各地网约车要求一样吗？",
+          "a": "不一样，应优先以当地细则为准。"
+        },
+        {
+          "q": "车辆准入通常看哪些条件？",
+          "a": "常见包括排放、轴距、车龄、保险等要求。"
+        }
+      ],
+      "tips": [
+        "办理前建议先确认本地最新细则和平台准入要求。",
+        "部分材料可能需要提前准备背景审核或资格证明。"
+      ],
+      "entry_label": "查看准入要求",
+      "entry_url": "https://www.mot.gov.cn/",
+      "qa_seed": "网约车驾驶员资格证怎么办理",
+      "keywords": [
+        "网约车",
+        "从业资格",
+        "营运许可",
+        "驾驶员资格",
+        "运输"
+      ],
+      "download_name": "网约车从业资格申请清单.txt",
+      "download_url": "/static/downloads/ride-hailing-license.txt",
+      "is_active": 1,
+      "form_schema": {
+        "submit_label": "提交网约车驾驶员从业资格申请",
+        "intro": "请填写以下信息，工作人员将审核驾龄、违法记录后进行培训预约通知。",
+        "fields": [
+          {
+            "name": "name",
+            "label": "姓名",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入证件姓名",
+            "max_length": 50
+          },
+          {
+            "name": "id_number",
+            "label": "身份证号",
+            "type": "text",
+            "required": true,
+            "placeholder": "请输入 18 位身份证号",
+            "pattern": "^[0-9Xx]{15,18}$"
+          },
+          {
+            "name": "phone",
+            "label": "手机号",
+            "type": "tel",
+            "required": true,
+            "placeholder": "请输入 11 位手机号",
+            "pattern": "^1[3-9]\\d{9}$"
+          },
+          {
+            "name": "drive_license_no",
+            "label": "驾驶证档案编号",
+            "type": "text",
+            "required": true,
+            "max_length": 20
+          },
+          {
+            "name": "drive_years",
+            "label": "实际驾龄（年）",
+            "type": "select",
+            "required": true,
+            "options": [
+              "3 年以下",
+              "3-5 年",
+              "5-10 年",
+              "10 年以上"
+            ]
+          },
+          {
+            "name": "has_serious_violation",
+            "label": "近 3 年内是否有重大违法或事故",
+            "type": "select",
+            "required": true,
+            "options": [
+              "否",
+              "是"
+            ]
+          },
+          {
+            "name": "city",
+            "label": "拟从业城市",
+            "type": "text",
+            "required": true,
+            "max_length": 30
+          },
+          {
+            "name": "training_consent",
+            "label": "是否同意参加平台规定的从业培训",
+            "type": "select",
+            "required": true,
+            "options": [
+              "同意",
+              "需进一步咨询"
+            ]
+          },
+          {
+            "name": "remark",
+            "label": "备注（选填）",
+            "type": "textarea",
+            "required": false,
+            "placeholder": "如有特殊情况可在此说明",
+            "max_length": 300
+          }
+        ]
+      }
+    }
+  ]
+}

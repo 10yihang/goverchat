@@ -18,6 +18,8 @@ const AdminPage = lazy(() => import("@/routes/AdminPage"))
 const GuidePage = lazy(() => import("@/routes/GuidePage"))
 const ServiceCenterPage = lazy(() => import("@/routes/ServiceCenterPage"))
 const DocsPage = lazy(() => import("@/routes/DocsPage"))
+const HallsPage = lazy(() => import("@/routes/HallsPage"))
+const HallDetailPage = lazy(() => import("@/routes/HallDetailPage"))
 const NotFoundPage = lazy(() => import("@/routes/NotFoundPage"))
 
 export function App() {
@@ -40,6 +42,8 @@ export function App() {
                 <Route path="/guide" element={<GuidePage />} />
                 <Route path="/service-center" element={<ServiceCenterPage />} />
                 <Route path="/docs" element={<DocsPage />} />
+                <Route path="/halls" element={<HallsPage />} />
+                <Route path="/halls/:id" element={<HallDetailPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/admin/login" element={<AdminLoginPage />} />
                 <Route
