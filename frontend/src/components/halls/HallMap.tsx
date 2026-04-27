@@ -16,8 +16,8 @@ interface HallMapProps {
   onSelectHall?: (id: string) => void
 }
 
-const AMAP_KEY = "ceae0f784d1e49f09268490bbeee24d9"
-const AMAP_SECURITY_CODE = "3ef664c5402c72cb096b3ae82125e5a7"
+const AMAP_KEY = import.meta.env.VITE_AMAP_KEY ?? ""
+const AMAP_SECURITY_CODE = import.meta.env.VITE_AMAP_SECURITY_CODE ?? ""
 
 interface AMapInstance {
   setCenter(lnglat: [number, number]): void

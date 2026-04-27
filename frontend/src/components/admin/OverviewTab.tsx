@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import type { AdminOverview } from "@/types/api"
+import { RuntimeControls } from "./RuntimeControls"
 
 interface OverviewTabProps {
   enablePolling: boolean
@@ -44,6 +45,7 @@ export function OverviewTab({ enablePolling }: OverviewTabProps) {
 
   return (
     <div className="space-y-6">
+      <RuntimeControls />
       <KpiCards overview={overview} />
       <div className="grid gap-6 lg:grid-cols-2">
         <RecentSessions sessions={overview.recent_sessions} />

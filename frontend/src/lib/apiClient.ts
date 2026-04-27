@@ -136,3 +136,51 @@ export const api = {
   upload: <T = unknown>(url: string, formData: FormData, opts?: RequestOptions) =>
     apiRequest<T>(url, { ...opts, method: "POST", formData }),
 }
+
+export async function* streamPost<T = unknown>(
+  url: string,
+  body: unknown,
+): AsyncGenerator<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const payload = await parseBody(res)
+    throw new ApiError(extractMessage(payload, res.status), res.status, payload)
+  }
+
+  const reader = res.body?.getReader()
+  if (!reader) throw new ApiError("SSE stream not available", 0)
+
+  const decoder = new TextDecoder()
+  let buffer = ""
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split("\n")
+      buffer = lines.pop() ?? ""
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed || !trimmed.startsWith("data: ")) continue
+        const jsonStr = trimmed.slice(6)
+        if (!jsonStr) continue
+        try {
+          yield JSON.parse(jsonStr) as T
+        } catch {
+          // skip malformed JSON
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}

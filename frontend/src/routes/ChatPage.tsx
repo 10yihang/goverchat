@@ -7,7 +7,7 @@ import {
   useHistory,
   useSessions,
   useNewSession,
-  useChatSend,
+  useSendMessageStream,
   useVoiceUpload,
   useImageUpload,
 } from "@/hooks/api/useChat"
@@ -31,11 +31,11 @@ export default function ChatPage() {
   const sessions = useSessions()
   const history = useHistory(activeId)
   const newSession = useNewSession()
-  const chatSend = useChatSend()
+  const streamSend = useSendMessageStream()
   const voiceUpload = useVoiceUpload()
   const imageUpload = useImageUpload()
 
-  const isPending = chatSend.isPending || voiceUpload.isPending || imageUpload.isPending
+  const isPending = streamSend.isPending || voiceUpload.isPending || imageUpload.isPending
 
   useEffect(() => {
     const q = searchParams.get("q")
@@ -57,10 +57,10 @@ export default function ChatPage() {
 
   const handleSendText = useCallback(
     (text: string) => {
-      chatSend.mutate({ session_id: activeId, text })
+      streamSend.mutate({ session_id: activeId, text })
       setComposerText("")
     },
-    [activeId, chatSend]
+    [activeId, streamSend]
   )
 
   const handleSendVoice = useCallback(

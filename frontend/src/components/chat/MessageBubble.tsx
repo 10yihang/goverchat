@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import type { AnswerSource, FormPrompt, KnowledgeSource, ServiceCard } from "@/types/api"
 import { useFormSchema } from "@/hooks/api/useApplication"
 import { InlineServiceForm } from "./InlineServiceForm"
+import { FeedbackButtons } from "./FeedbackButtons"
 
 export interface DisplayMessage {
   role: "user" | "bot"
@@ -27,6 +28,8 @@ export interface DisplayMessage {
   service_card?: ServiceCard | null
   answer_source?: AnswerSource
   form_prompt?: FormPrompt | null
+  id?: number
+  _streaming?: boolean
 }
 
 interface MessageBubbleProps {
@@ -41,11 +44,9 @@ function ConfidenceBadge({ value }: { value: number }) {
 }
 
 function AnswerSourceBadge({ source }: { source: AnswerSource }) {
-  return (
-    <Badge tone={source === "knowledge" ? "primary" : "gold"}>
-      {source === "knowledge" ? "知识库" : "联网"}
-    </Badge>
-  )
+  const label = source === "knowledge" ? "知识库" : source === "llm_rag" ? "RAG" : "联网"
+  const tone = source === "knowledge" ? "primary" : source === "llm_rag" ? "success" : "gold"
+  return <Badge tone={tone}>{label}</Badge>
 }
 
 function SourceList({ sources }: { sources: KnowledgeSource[] }) {
@@ -197,7 +198,12 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 }
           }
         >
-          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+          <p className="whitespace-pre-wrap break-words">
+            {message.content}
+            {message._streaming && (
+              <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm" style={{ background: "var(--color-primary)" }} />
+            )}
+          </p>
         </div>
 
         {!isUser && (
@@ -207,6 +213,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             )}
             {message.answer_source && <AnswerSourceBadge source={message.answer_source} />}
             {message.msg_type === "voice" && <Badge tone="neutral">语音</Badge>}
+            {!message._streaming && message.id && (
+              <FeedbackButtons messageId={message.id} />
+            )}
           </div>
         )}
 

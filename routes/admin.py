@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
 
+import config
 from models.conversation import list_sessions
 from models.db import execute
 from models.knowledge import count_active, insert, soft_delete, update
@@ -14,6 +15,7 @@ from services.auth_service import (
     generate_salt,
     hash_password,
 )
+from services.llm_service import llm_service
 from services.metrics_service import metrics_service
 from services.service_catalog import service_catalog_service
 from services.tfidf_service import tfidf_service
@@ -362,3 +364,43 @@ def update_application_status(app_id: int):
         return jsonify({"error": exc.code, "message": exc.message}), exc.status
 
     return jsonify({"message": "申请状态已更新", "application": record}), 200
+
+
+@admin_bp.get("/api/admin/llm-chat-toggle")
+@admin_required
+def get_llm_chat_toggle():
+    from services.admin_settings import admin_settings
+
+    return jsonify(
+        {
+            "enabled": admin_settings.get_bool("llm_chat_enabled", default=True),
+            "config_enabled": config.LLM_CHAT_ENABLED,
+            "llm_available": llm_service.is_enabled(),
+        }
+    ), 200
+
+
+@admin_bp.put("/api/admin/llm-chat-toggle")
+@admin_required
+def set_llm_chat_toggle():
+    from services.admin_settings import admin_settings
+
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get("enabled"))
+    admin_settings.set_bool("llm_chat_enabled", enabled)
+    return jsonify({"enabled": enabled}), 200
+
+
+@admin_bp.get("/api/admin/feedback")
+@admin_required
+def list_feedback():
+    from services.feedback_service import list_feedbacks, get_stats
+
+    rating = request.args.get("rating")  # 'up' | 'down' | None
+    items = list_feedbacks(rating=rating, limit=100)
+    return jsonify(
+        {
+            "items": items,
+            "stats": get_stats(),
+        }
+    ), 200

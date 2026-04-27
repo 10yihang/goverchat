@@ -144,3 +144,35 @@ export function useDeleteServiceItem() {
     },
   })
 }
+
+const TOGGLE_KEY = ["admin", "llm-chat-toggle"] as const
+
+export function useLLMChatToggle() {
+  return useQuery<import("@/types/api").LLMChatToggleStatus>({
+    queryKey: TOGGLE_KEY,
+    queryFn: () => api.get<import("@/types/api").LLMChatToggleStatus>("/api/admin/llm-chat-toggle"),
+    staleTime: 30_000,
+  })
+}
+
+export function useSetLLMChatToggle() {
+  const qc = useQueryClient()
+  return useMutation<{ enabled: boolean }, Error, boolean>({
+    mutationFn: (enabled) => api.put<{ enabled: boolean }>("/api/admin/llm-chat-toggle", { enabled }),
+    onSuccess: (d) => {
+      qc.setQueryData(TOGGLE_KEY, d)
+    },
+  })
+}
+
+const FEEDBACK_KEY = ["admin", "feedback"] as const
+
+export function useFeedbackList(rating?: "up" | "down") {
+  return useQuery<import("@/types/api").FeedbackListResponse>({
+    queryKey: [...FEEDBACK_KEY, rating],
+    queryFn: () => api.get<import("@/types/api").FeedbackListResponse>("/api/admin/feedback", {
+      query: rating ? { rating } : undefined,
+    }),
+    staleTime: 30_000,
+  })
+}

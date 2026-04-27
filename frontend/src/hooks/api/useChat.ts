@@ -148,3 +148,99 @@ export function useImageUpload() {
     onError: (e, v) => { replacePlaceholder(qc, v.session_id); toast.error(e.message) },
   })
 }
+
+export function useSendMessageStream() {
+  const qc = useQueryClient()
+  return useMutation<void, ApiError, { session_id: string | null; text: string }, { prev: string | null }>({
+    mutationFn: async (v) => {
+      const { streamPost } = await import("@/lib/apiClient")
+      type SE = import("@/types/api").StreamEvent
+
+      const sid = v.session_id
+      append(qc, sid, userMsg(v.text))
+      append(qc, sid, {
+        role: "bot", content: "", msg_type: "text",
+        _streaming: true as unknown as undefined,
+        created_at: new Date().toISOString(),
+      })
+
+      let accumulated = ""
+
+      for await (const evt of streamPost<SE>("/api/chat/stream", {
+        session_id: sid ?? undefined, text: v.text,
+      })) {
+        if (evt.type === "meta") {
+          qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
+            const arr = [...(old ?? [])]
+            const last = arr[arr.length - 1]
+            if (last?.role === "bot") {
+              arr[arr.length - 1] = {
+                ...last,
+                confidence: evt.data.confidence,
+                knowledge_id: evt.data.knowledge_id,
+                sources: evt.data.sources,
+                service_card: evt.data.service_card,
+                answer_source: evt.data.answer_source,
+                _streaming: true as unknown as undefined,
+              }
+            }
+            return arr
+          })
+        } else if (evt.type === "delta") {
+          accumulated += evt.data.text
+          qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
+            const arr = [...(old ?? [])]
+            const last = arr[arr.length - 1]
+            if (last?.role === "bot") {
+              arr[arr.length - 1] = { ...last, content: accumulated, _streaming: true as unknown as undefined }
+            }
+            return arr
+          })
+        } else if (evt.type === "done") {
+          qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
+            const arr = [...(old ?? [])]
+            const last = arr[arr.length - 1]
+            if (last?.role === "bot") {
+              arr[arr.length - 1] = {
+                ...last,
+                id: evt.data.message_id,
+                form_prompt: evt.data.form_prompt,
+                answer_source: evt.data.answer_source ?? last.answer_source,
+                _streaming: undefined,
+              }
+            }
+            return arr
+          })
+        } else if (evt.type === "error") {
+          qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
+            const arr = [...(old ?? [])]
+            const last = arr[arr.length - 1]
+            if (last?.role === "bot") {
+              arr[arr.length - 1] = { ...last, content: `❌ ${evt.data.error}`, _streaming: undefined }
+            }
+            return arr
+          })
+        }
+      }
+      qc.invalidateQueries({ queryKey: KEYS.sessions })
+    },
+    onMutate: (v) => ({ prev: v.session_id }),
+    onError: (e, v) => {
+      qc.setQueryData<DisplayMessage[]>(KEYS.history(v.session_id), (old) => {
+        const arr = [...(old ?? [])]
+        const last = arr[arr.length - 1]
+        if (last?.role === "bot" && last._streaming) {
+          arr[arr.length - 1] = { ...last, content: `❌ ${e.message}`, _streaming: undefined }
+        }
+        return arr
+      })
+      toast.error(e.message)
+    },
+  })
+}
+
+export function useSubmitFeedback() {
+  return useMutation<{ ok: boolean; message?: string }, ApiError, { message_id: number; rating: "up" | "down"; reason_text?: string }>({
+    mutationFn: (v) => api.post<{ ok: boolean; message?: string }>("/api/chat/feedback", v),
+  })
+}

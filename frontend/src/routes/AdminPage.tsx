@@ -1,12 +1,13 @@
 import { useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui"
-import { BarChart3, Database, Users, Briefcase, ClipboardList } from "lucide-react"
+import { BarChart3, Database, Users, Briefcase, ClipboardList, MessageSquare } from "lucide-react"
 import { OverviewTab } from "@/components/admin/OverviewTab"
 import { KnowledgeTab } from "@/components/admin/KnowledgeTab"
 import { UsersTab } from "@/components/admin/UsersTab"
 import { ServiceItemsTab } from "@/components/admin/ServiceItemsTab"
 import { ApplicationsTab } from "@/components/admin/ApplicationsTab"
+import { FeedbackTab } from "@/components/admin/FeedbackTab"
 
 const TABS = [
   { value: "overview", label: "概览", icon: BarChart3 },
@@ -14,6 +15,7 @@ const TABS = [
   { value: "applications", label: "办理申请", icon: ClipboardList },
   { value: "users", label: "用户", icon: Users },
   { value: "service-items", label: "办事事项", icon: Briefcase },
+  { value: "feedback", label: "用户反馈", icon: MessageSquare },
 ] as const
 
 type TabValue = (typeof TABS)[number]["value"]
@@ -60,6 +62,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="service-items">
           <ServiceItemsTab />
+        </TabsContent>
+        <TabsContent value="feedback">
+          <FeedbackTab />
         </TabsContent>
       </Tabs>
     </div>

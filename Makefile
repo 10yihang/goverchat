@@ -106,6 +106,12 @@ db-migrate: ## 增量迁移（已有部署追加 c_user / email_code / applicati
 	@mysql -u $${DB_USER:-root} -p$${DB_PASSWORD} -h $${DB_HOST:-localhost} $(DB_NAME) < scripts/migrate_add_in_chat_submission.sql
 	@printf "$(C_GREEN)[ok]$(C_OFF) 迁移完成\n"
 
+.PHONY: db-migrate-rag
+db-migrate-rag: ## 增量迁移（追加 sys_setting / message_feedback 表，RAG 功能所需）
+	@printf "$(C_BLUE)→ 执行迁移 migrate_add_rag_tables.sql$(C_OFF)\n"
+	@mysql -u $${DB_USER:-root} -p$${DB_PASSWORD} -h $${DB_HOST:-localhost} $(DB_NAME) < scripts/migrate_add_rag_tables.sql
+	@printf "$(C_GREEN)[ok]$(C_OFF) RAG 迁移完成（sys_setting + message_feedback）\n"
+
 .PHONY: db-import
 db-import: ## 导入知识库 CSV（追加模式，不清空）
 	@$(PY) scripts/import_knowledge.py
@@ -127,7 +133,9 @@ db-status: ## 查看数据库当前表与行数
 		UNION ALL SELECT 'sys_user', COUNT(*) FROM sys_user \
 		UNION ALL SELECT 'c_user', COUNT(*) FROM c_user \
 		UNION ALL SELECT 'email_verification_code', COUNT(*) FROM email_verification_code \
-		UNION ALL SELECT 'service_application', COUNT(*) FROM service_application;" 2>&1 \
+		UNION ALL SELECT 'service_application', COUNT(*) FROM service_application \
+		UNION ALL SELECT 'sys_setting', COUNT(*) FROM sys_setting \
+		UNION ALL SELECT 'message_feedback', COUNT(*) FROM message_feedback;" 2>&1 \
 		| grep -v "Using a password"
 
 # ============================================================
@@ -252,7 +260,7 @@ check-env: ## 检查 .env 关键字段是否填了真实值
 		printf "$(C_RED)[err]$(C_OFF) $(ENV_FILE) 不存在，先 make env\n"; exit 1; \
 	fi
 	@printf "$(C_BLUE)→ 检查 $(ENV_FILE)$(C_OFF)\n"
-	@grep -E '^(LLM_API_KEY|SMTP_PASSWORD|DB_PASSWORD)=' $(ENV_FILE) | while IFS='=' read k v; do \
+	@grep -E '^(LLM_API_KEY|SMTP_PASSWORD|DB_PASSWORD|SECRET_KEY)=' $(ENV_FILE) | while IFS='=' read k v; do \
 		case "$$v" in \
 			"sk-replace-with-your-key"|"your_authorization_code"|"change_me_in_production") \
 				printf "  $(C_RED)✗$(C_OFF) %-20s 仍是占位值\n" "$$k" ;; \
@@ -286,7 +294,7 @@ clean-all: clean stop ## 深度清理（含 venv + node_modules + 上传文件 +
 # ============================================================
 
 .PHONY: all
-all: setup db-migrate db-import db-form-schema check-env start-bg ## 一键完成全部就绪并后台启动
+all: setup db-migrate db-migrate-rag db-import db-form-schema check-env start-bg ## 一键完成全部就绪并后台启动
 	@printf "\n$(C_GREEN)═══════════════════════════════════════════════════$(C_OFF)\n"
 	@printf "$(C_GREEN) 政务智聊已就绪！$(C_OFF)\n"
 	@printf "$(C_GREEN)═══════════════════════════════════════════════════$(C_OFF)\n\n"

@@ -82,33 +82,6 @@ class LLMService:
                 )
                 self._init_failure_until = time.time() + _INIT_FAILURE_COOLDOWN_SEC
                 return None
-        with self._client_lock:
-            if self._client is not None:
-                return self._client
-            if self._client_init_failed:
-                return None
-            try:
-                from openai import OpenAI
-            except ImportError:
-                logger.error("[LLM] openai 包未安装，意图识别将降级到关键字")
-                self._client_init_failed = True
-                return None
-            try:
-                self._client = OpenAI(
-                    base_url=config.LLM_API_BASE,
-                    api_key=config.LLM_API_KEY,
-                    timeout=config.LLM_TIMEOUT,
-                )
-                logger.info(
-                    "[LLM] client ready base=%s model=%s",
-                    config.LLM_API_BASE,
-                    config.LLM_MODEL,
-                )
-                return self._client
-            except Exception as exc:
-                logger.error("[LLM] 客户端初始化失败：%s", exc)
-                self._client_init_failed = True
-                return None
 
     def classify_intent(self, text: str, candidate_service_title: str | None) -> dict:
         text = (text or "").strip()
@@ -183,6 +156,81 @@ class LLMService:
             kwargs["response_format"] = {"type": "json_object"}
         response = client.chat.completions.create(**kwargs)
         return (response.choices[0].message.content or "").strip()
+
+    def chat_completion(
+        self,
+        messages: list[dict],
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> str | None:
+        """非流式对话生成。失败返回 None。"""
+        if not self.is_enabled():
+            return None
+        client = self._get_client()
+        if client is None:
+            return None
+        try:
+            response = client.chat.completions.create(
+                model=config.LLM_MODEL,
+                messages=messages,
+                temperature=temperature
+                if temperature is not None
+                else config.LLM_CHAT_TEMPERATURE,
+                max_tokens=max_tokens,
+            )
+            return (response.choices[0].message.content or "").strip()
+        except Exception as exc:
+            logger.warning("[LLM] chat_completion 失败 err=%s", exc)
+            return None
+
+    def chat_completion_stream(
+        self,
+        messages: list[dict],
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ):
+        """
+        流式对话生成。生成器，每次 yield 一个文本片段（delta）。
+        失败时 yield None 表示中止；调用方应检测并降级。
+        """
+        if not self.is_enabled():
+            yield None
+            return
+        client = self._get_client()
+        if client is None:
+            yield None
+            return
+        try:
+            stream = client.chat.completions.create(
+                model=config.LLM_MODEL,
+                messages=messages,
+                temperature=temperature
+                if temperature is not None
+                else config.LLM_CHAT_TEMPERATURE,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content or ""
+                if delta:
+                    yield delta
+        except Exception as exc:
+            logger.warning("[LLM] chat_completion_stream 失败 err=%s", exc)
+            yield None
+
+    @staticmethod
+    def estimate_tokens(text: str) -> int:
+        """
+        粗略 token 估算。中文 1 字 ≈ 1.5 token，英文 4 字符 ≈ 1 token。
+        +4 给 role/分隔符开销。够用于预算控制。
+        """
+        if not text:
+            return 0
+        chinese = sum(1 for c in text if "\u4e00" <= c <= "\u9fff")
+        other = len(text) - chinese
+        return int(chinese * 1.5 + other / 4) + 4
 
     @staticmethod
     def _parse_intent_json(raw: str) -> dict | None:

@@ -15,6 +15,7 @@ from models.conversation import (
     add_message,
     claim_session,
     get_session_owner,
+    get_recent_messages,
 )
 import config
 
@@ -172,6 +173,203 @@ class ChatService:
 
         confidence = float(result.get("confidence") or 0.0)
         return confidence < config.WEB_SEARCH_TRIGGER_THRESHOLD
+
+    def answer_stream(self, session_id: str, text: str, msg_type: str = "text"):
+        """
+        流式问答生成器。yield 字典事件：
+          {"type": "meta",  "data": {confidence, sources, service_card, ...}}
+          {"type": "delta", "data": {"text": "..."}}
+          {"type": "done",  "data": {"message_id": int, "form_prompt": ...}}
+          {"type": "error", "data": {"error": "..."}}
+        """
+        text = text.strip()
+        if not text:
+            yield {"type": "error", "data": {"error": "empty_input"}}
+            return
+
+        # 1. 持久化用户消息
+        try:
+            add_message(
+                session_id=session_id, role="user", content=text, msg_type=msg_type
+            )
+        except Exception as e:
+            logger.warning("[ChatService] 用户消息持久化失败：%s", e)
+
+        # 2. TF-IDF 检索
+        retrieval = tfidf_service.search(text)
+        answer_source = "knowledge"
+
+        # 3. Web 兜底（仅 LLM 关闭时）
+        use_llm = self._llm_chat_active()
+        if not use_llm and self._should_fallback_to_web(retrieval):
+            web_result = web_search_service.answer(text)
+            if web_result:
+                retrieval = web_result
+                answer_source = web_result.get("answer_source", "web")
+
+        # 4. 推荐卡 + 表单意图
+        card = service_catalog_service.recommend_card(text)
+        form_prompt = None
+        if config.FORM_SUBMISSION_ENABLED and card and card.get("has_form"):
+            form_prompt = self._compute_form_prompt(text, card)
+
+        # 5. 第一帧：meta
+        yield {
+            "type": "meta",
+            "data": {
+                "confidence": retrieval.get("confidence", 0.0),
+                "knowledge_id": retrieval.get("knowledge_id"),
+                "sources": retrieval.get("sources", []),
+                "service_card": card,
+                "answer_source": "llm_rag" if use_llm else answer_source,
+            },
+        }
+
+        # 6. 流式生成 answer
+        full_answer_chunks = []
+        if use_llm:
+            gen = self._rag_stream(session_id, text, retrieval)
+            first = next(gen, None)
+            if first is None:
+                yield from self._simulate_stream(
+                    retrieval.get("answer", ""), full_answer_chunks
+                )
+                answer_source = "knowledge"
+            else:
+                full_answer_chunks.append(first)
+                yield {"type": "delta", "data": {"text": first}}
+                for delta in gen:
+                    if delta is None:
+                        break
+                    full_answer_chunks.append(delta)
+                    yield {"type": "delta", "data": {"text": delta}}
+        else:
+            yield from self._simulate_stream(
+                retrieval.get("answer", ""), full_answer_chunks
+            )
+
+        final_answer = "".join(full_answer_chunks)
+
+        # 7. 持久化 bot 消息
+        bot_message_id = None
+        try:
+            bot_message_id = add_message(
+                session_id=session_id,
+                role="bot",
+                content=final_answer,
+                msg_type="text",
+                confidence=retrieval.get("confidence", 0.0),
+                knowledge_id=retrieval.get("knowledge_id"),
+                service_card=card,
+                form_prompt=form_prompt,
+            )
+        except Exception as e:
+            logger.warning("[ChatService] Bot 消息持久化失败：%s", e)
+
+        # 8. 最后一帧：done
+        yield {
+            "type": "done",
+            "data": {
+                "message_id": bot_message_id,
+                "form_prompt": form_prompt,
+                "answer_source": answer_source if not use_llm else "llm_rag",
+            },
+        }
+
+    @staticmethod
+    def _simulate_stream(text: str, accumulator: list, chunk_size: int = 8):
+        """LLM 不可用时，把 TF-IDF 完整 answer 切片模拟流式输出"""
+        for i in range(0, len(text), chunk_size):
+            piece = text[i : i + chunk_size]
+            accumulator.append(piece)
+            yield {"type": "delta", "data": {"text": piece}}
+
+    def _rag_stream(self, session_id: str, current_text: str, retrieval: dict):
+        """构造 messages 并流式调 LLM"""
+        sources = retrieval.get("sources") or []
+        if sources:
+            context_block = "【参考资料】\n" + "\n\n".join(
+                f"{i + 1}. 问：{s.get('question', '')}\n   答：{s.get('answer', '')}"
+                for i, s in enumerate(sources[:3])
+            )
+        else:
+            context_block = "【参考资料】（无相关知识）"
+
+        history = get_recent_messages(session_id, limit=config.LLM_CHAT_MAX_TURNS * 2)
+        # 排除当前用户消息（已入库，是最后一条 user）
+        if (
+            history
+            and history[-1]["role"] == "user"
+            and history[-1]["content"] == current_text
+        ):
+            history = history[:-1]
+
+        budget = config.LLM_CONTEXT_TOKEN_BUDGET
+        fixed = (
+            llm_service.estimate_tokens(config.LLM_CHAT_SYSTEM_PROMPT)
+            + llm_service.estimate_tokens(current_text)
+            + llm_service.estimate_tokens(context_block)
+            + config.LLM_CHAT_OUTPUT_RESERVE
+        )
+        history_budget = max(budget - fixed, 0)
+
+        selected = []
+        used = 0
+        for msg in reversed(history):
+            cost = llm_service.estimate_tokens(msg["content"])
+            if used + cost > history_budget:
+                break
+            selected.append(msg)
+            used += cost
+        selected.reverse()
+
+        messages = [{"role": "system", "content": config.LLM_CHAT_SYSTEM_PROMPT}]
+        for m in selected:
+            role = "assistant" if m["role"] == "bot" else "user"
+            messages.append({"role": role, "content": m["content"]})
+        messages.append(
+            {
+                "role": "user",
+                "content": f"{context_block}\n\n【用户问题】\n{current_text}",
+            }
+        )
+
+        yield from llm_service.chat_completion_stream(
+            messages, max_tokens=config.LLM_CHAT_OUTPUT_RESERVE
+        )
+
+    def _compute_form_prompt(self, text: str, card: dict) -> dict | None:
+        """从 _maybe_attach_form 抽出，返回 form_prompt 字典或 None"""
+        try:
+            intent = llm_service.classify_intent(text, card.get("title"))
+        except Exception as exc:
+            logger.warning("[ChatService] 意图识别异常 err=%s", exc)
+            return None
+        if intent.get("intent") != "submission":
+            return None
+        if float(intent.get("confidence", 0)) < config.LLM_INTENT_THRESHOLD:
+            return None
+        schema = service_catalog_service.get_form_schema(card["slug"])
+        if schema is None:
+            return None
+        return {
+            "service_slug": card["slug"],
+            "service_title": card["title"],
+            "form_schema": schema,
+            "intent_source": intent.get("source", "unknown"),
+            "intent_confidence": intent.get("confidence", 0.0),
+        }
+
+    @staticmethod
+    def _llm_chat_active() -> bool:
+        """LLM 对话总开关"""
+        if not config.LLM_CHAT_ENABLED:
+            return False
+        from services.admin_settings import admin_settings
+
+        if not admin_settings.get_bool("llm_chat_enabled", default=True):
+            return False
+        return llm_service.is_enabled()
 
     def new_session(
         self, user_agent: str = "", ip: str = "", user_id: int | None = None

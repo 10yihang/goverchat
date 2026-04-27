@@ -1,4 +1,4 @@
-export type AnswerSource = "knowledge" | "web"
+export type AnswerSource = "knowledge" | "web" | "llm_rag"
 export type MessageRole = "user" | "bot"
 export type MessageType = "text" | "voice"
 
@@ -300,4 +300,76 @@ export interface HallRecommend {
   halls: Hall[]
   service_slug: string
   service_title: string
+}
+
+// --- RAG Streaming ---
+
+export interface Feedback {
+  id: number
+  message_id: number
+  user_id: number
+  rating: "up" | "down"
+  reason_text?: string | null
+  created_at?: string
+  user_question?: string
+  bot_answer?: string
+}
+
+export interface LLMChatToggleStatus {
+  enabled: boolean
+  config_enabled: boolean
+  llm_available: boolean
+}
+
+export interface StreamMetaEvent {
+  type: "meta"
+  data: {
+    confidence: number
+    knowledge_id: number | null
+    sources: KnowledgeSource[]
+    service_card?: ServiceCard | null
+    answer_source?: AnswerSource
+  }
+}
+
+export interface StreamDeltaEvent {
+  type: "delta"
+  data: { text: string }
+}
+
+export interface StreamDoneEvent {
+  type: "done"
+  data: {
+    message_id: number
+    form_prompt?: FormPrompt | null
+    answer_source?: AnswerSource
+  }
+}
+
+export interface StreamErrorEvent {
+  type: "error"
+  data: { error: string }
+}
+
+export interface StreamEndEvent {
+  type: "end"
+}
+
+export type StreamEvent =
+  | StreamMetaEvent
+  | StreamDeltaEvent
+  | StreamDoneEvent
+  | StreamErrorEvent
+  | StreamEndEvent
+
+export interface FeedbackStats {
+  total: number
+  up: number
+  down: number
+  satisfaction_rate: number
+}
+
+export interface FeedbackListResponse {
+  items: Feedback[]
+  stats: FeedbackStats
 }

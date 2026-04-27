@@ -125,6 +125,27 @@ LLM_INTENT_THRESHOLD = float(os.environ.get("LLM_INTENT_THRESHOLD", 0.6))
 
 
 # ---------------------------------------------------------------------------
+# LLM 对话生成（RAG）
+# ---------------------------------------------------------------------------
+LLM_CHAT_ENABLED = os.environ.get("LLM_CHAT_ENABLED", "true").lower() == "true"
+LLM_CONTEXT_TOKEN_BUDGET = int(os.environ.get("LLM_CONTEXT_TOKEN_BUDGET", "4000"))
+LLM_CHAT_MAX_TURNS = int(os.environ.get("LLM_CHAT_MAX_TURNS", "10"))
+LLM_CHAT_OUTPUT_RESERVE = int(os.environ.get("LLM_CHAT_OUTPUT_RESERVE", "800"))
+LLM_CHAT_TEMPERATURE = float(os.environ.get("LLM_CHAT_TEMPERATURE", "0.3"))
+
+LLM_CHAT_SYSTEM_PROMPT = """你是"政务智聊"AI助手，专门解答交通运输领域的政务办事问题（驾驶证、机动车、违章、号牌、营运等）。
+
+你的回答必须遵守：
+1. 优先基于【参考资料】回答，资料里没有的信息绝不编造
+2. 若参考资料完全不相关或为空，明确告诉用户"暂未收录该问题，建议拨打 12328 咨询"
+3. 结合对话历史理解用户的追问（如"那"、"它"指代上一轮内容）
+4. 回答用中文，简洁专业，避免长篇大论；必要时用列表分点
+5. 不要出现"根据参考资料"、"作为AI"这种元表达，直接给答案
+6. 涉及具体材料/费用/时限时，直接引用参考资料的原文数字
+"""
+
+
+# ---------------------------------------------------------------------------
 # SMTP / outbound email
 # ---------------------------------------------------------------------------
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()

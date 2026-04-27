@@ -214,3 +214,25 @@ def delete_session_messages(session_id: str) -> None:
     execute(
         "DELETE FROM chat_message WHERE session_id = %s", (session_id,), commit=True
     )
+
+
+def get_recent_messages(session_id: str, limit: int = 20) -> list[dict]:
+    """取最近 N 条，按时间正序返回（最旧在前），仅 id+role+content"""
+    sql = """
+        SELECT id, role, content
+        FROM chat_message
+        WHERE session_id = %s
+        ORDER BY id DESC
+        LIMIT %s
+    """
+    rows = execute(sql, (session_id, limit), fetchall=True) or []
+    return list(reversed(rows))
+
+
+def get_message_by_id(message_id: int) -> dict | None:
+    """单条消息查询，用于反馈校验"""
+    return execute(
+        "SELECT id, session_id, role, content FROM chat_message WHERE id = %s",
+        (message_id,),
+        fetchone=True,
+    )
