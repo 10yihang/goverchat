@@ -31,16 +31,19 @@ export function ChatComposer({
 }: ChatComposerProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const submittingRef = useRef(false)
   const voice = useVoiceRecorder()
 
   const handleSubmit = useCallback(
     (e?: FormEvent) => {
       e?.preventDefault()
       const trimmed = text.trim()
-      if (!trimmed || isPending) return
+      if (!trimmed || isPending || submittingRef.current) return
+      submittingRef.current = true
       onSendText(trimmed)
       onTextChange("")
       if (textareaRef.current) textareaRef.current.style.height = "auto"
+      submittingRef.current = false
     },
     [text, isPending, onSendText, onTextChange]
   )

@@ -149,6 +149,31 @@ export function useImageUpload() {
   })
 }
 
+function makeBotPlaceholder(meta: Partial<DisplayMessage> = {}, content = ""): DisplayMessage {
+  return {
+    role: "bot", content, msg_type: "text",
+    created_at: new Date().toISOString(),
+    _streaming: true as unknown as undefined,
+    ...meta,
+  }
+}
+
+function ensureBotBubble(qc: QC, sid: string | null, meta: Partial<DisplayMessage>, content: string) {
+  const existing = qc.getQueryData<DisplayMessage[]>(KEYS.history(sid))
+  const last = existing?.[existing.length - 1]
+  if (last?.role === "bot" && last._streaming) {
+    // Already exists, update in place
+    qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
+      const arr = [...(old ?? [])]
+      arr[arr.length - 1] = { ...arr[arr.length - 1], ...meta, content, _streaming: true as unknown as undefined }
+      return arr
+    })
+  } else {
+    // Create new bot bubble
+    append(qc, sid, makeBotPlaceholder(meta, content))
+  }
+}
+
 export function useSendMessageStream() {
   const qc = useQueryClient()
   return useMutation<void, ApiError, { session_id: string | null; text: string }, { prev: string | null }>({
@@ -158,44 +183,25 @@ export function useSendMessageStream() {
 
       const sid = v.session_id
       append(qc, sid, userMsg(v.text))
-      append(qc, sid, {
-        role: "bot", content: "", msg_type: "text",
-        _streaming: true as unknown as undefined,
-        created_at: new Date().toISOString(),
-      })
+      // Bot bubble is deferred — created only when first delta arrives
 
       let accumulated = ""
+      let pendingMeta: Partial<DisplayMessage> = {}
 
       for await (const evt of streamPost<SE>("/api/chat/stream", {
         session_id: sid ?? undefined, text: v.text,
       })) {
         if (evt.type === "meta") {
-          qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
-            const arr = [...(old ?? [])]
-            const last = arr[arr.length - 1]
-            if (last?.role === "bot") {
-              arr[arr.length - 1] = {
-                ...last,
-                confidence: evt.data.confidence,
-                knowledge_id: evt.data.knowledge_id,
-                sources: evt.data.sources,
-                service_card: evt.data.service_card,
-                answer_source: evt.data.answer_source,
-                _streaming: true as unknown as undefined,
-              }
-            }
-            return arr
-          })
+          pendingMeta = {
+            confidence: evt.data.confidence,
+            knowledge_id: evt.data.knowledge_id,
+            sources: evt.data.sources,
+            service_card: evt.data.service_card,
+            answer_source: evt.data.answer_source,
+          }
         } else if (evt.type === "delta") {
           accumulated += evt.data.text
-          qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
-            const arr = [...(old ?? [])]
-            const last = arr[arr.length - 1]
-            if (last?.role === "bot") {
-              arr[arr.length - 1] = { ...last, content: accumulated, _streaming: true as unknown as undefined }
-            }
-            return arr
-          })
+          ensureBotBubble(qc, sid, pendingMeta, accumulated)
         } else if (evt.type === "done") {
           qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
             const arr = [...(old ?? [])]
@@ -212,11 +218,12 @@ export function useSendMessageStream() {
             return arr
           })
         } else if (evt.type === "error") {
+          ensureBotBubble(qc, sid, pendingMeta, `❌ ${evt.data.error}`)
           qc.setQueryData<DisplayMessage[]>(KEYS.history(sid), (old) => {
             const arr = [...(old ?? [])]
             const last = arr[arr.length - 1]
             if (last?.role === "bot") {
-              arr[arr.length - 1] = { ...last, content: `❌ ${evt.data.error}`, _streaming: undefined }
+              arr[arr.length - 1] = { ...last, _streaming: undefined }
             }
             return arr
           })

@@ -4,6 +4,7 @@ from __future__ import annotations
 问答编排服务（整合 TF-IDF 检索 + 消息持久化）
 """
 import logging
+import time
 
 from services.tfidf_service import tfidf_service
 from services.web_search_service import web_search_service
@@ -231,10 +232,15 @@ class ChatService:
             gen = self._rag_stream(session_id, text, retrieval)
             first = next(gen, None)
             if first is None:
+                # LLM 调用失败 → 尝试 web 兜底
+                if self._should_fallback_to_web(retrieval):
+                    web_result = web_search_service.answer(text)
+                    if web_result:
+                        retrieval = web_result
+                        answer_source = web_result.get("answer_source", "web")
                 yield from self._simulate_stream(
                     retrieval.get("answer", ""), full_answer_chunks
                 )
-                answer_source = "knowledge"
             else:
                 full_answer_chunks.append(first)
                 yield {"type": "delta", "data": {"text": first}}
@@ -278,11 +284,16 @@ class ChatService:
 
     @staticmethod
     def _simulate_stream(text: str, accumulator: list, chunk_size: int = 8):
-        """LLM 不可用时，把 TF-IDF 完整 answer 切片模拟流式输出"""
-        for i in range(0, len(text), chunk_size):
+        """LLM 不可用时，把 TF-IDF 完整 answer 切片模拟流式输出。
+        加入 time.sleep 让每个 chunk 在独立的 TCP 帧发送，前端才能逐帧渲染。"""
+        total = len(text)
+        for i in range(0, total, chunk_size):
             piece = text[i : i + chunk_size]
             accumulator.append(piece)
             yield {"type": "delta", "data": {"text": piece}}
+            # 仅当还有后续 chunk 时等待，让前端能逐条渲染
+            if i + chunk_size < total:
+                time.sleep(0.04)
 
     def _rag_stream(self, session_id: str, current_text: str, retrieval: dict):
         """构造 messages 并流式调 LLM"""

@@ -6,6 +6,15 @@ All values can be overridden by environment variables.
 
 import os
 
+# Flask CLI 会自动加载 .env，但 python app.py 直接运行时不会。
+# 这里显式加载，确保无论哪种启动方式都能读到 .env 配置。
+try:
+    from dotenv import load_dotenv
+    _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    load_dotenv(_env_path, override=False)
+except ImportError:
+    pass
+
 
 # ---------------------------------------------------------------------------
 # MySQL
