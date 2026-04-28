@@ -37,11 +37,13 @@ CREATE TABLE IF NOT EXISTS kb_knowledge (
 CREATE TABLE IF NOT EXISTS chat_session (
   id          INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   session_id  VARCHAR(36)      NOT NULL,
+  user_id     INT UNSIGNED     DEFAULT NULL,
   user_agent  VARCHAR(512)     NOT NULL DEFAULT '',
   ip_address  VARCHAR(45)      NOT NULL DEFAULT '',
   created_at  DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE INDEX uq_session_id (session_id)
+  UNIQUE INDEX uq_session_id (session_id),
+  INDEX idx_chat_session_user (user_id)
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
@@ -162,6 +164,42 @@ CREATE TABLE IF NOT EXISTS service_application (
   INDEX idx_app_slug (service_slug),
   INDEX idx_app_status (status),
   INDEX idx_app_phone (applicant_phone)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+-- ────────────────────────────────────────────────────────────────
+-- 8. 运行时开关表（LLM 聊天开关等）
+-- ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS sys_setting (
+    `key`       VARCHAR(64)  NOT NULL,
+    `value`     VARCHAR(255) NOT NULL,
+    updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`key`)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO sys_setting (`key`, `value`) VALUES ('llm_chat_enabled', 'true');
+
+-- ────────────────────────────────────────────────────────────────
+-- 9. 消息反馈表（点赞/踩）
+-- ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS message_feedback (
+    id          BIGINT AUTO_INCREMENT,
+    message_id  INT UNSIGNED  NOT NULL,
+    session_id  VARCHAR(64)   NOT NULL,
+    user_id     INT DEFAULT NULL,
+    rating      ENUM('up','down') NOT NULL,
+    reason_text VARCHAR(500)  DEFAULT NULL,
+    created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_message_user (message_id, user_id),
+    INDEX idx_session (session_id),
+    INDEX idx_rating_time (rating, created_at),
+    CONSTRAINT fk_feedback_message
+        FOREIGN KEY (message_id) REFERENCES chat_message(id)
+        ON DELETE CASCADE
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
