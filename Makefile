@@ -189,8 +189,8 @@ start-bg: kill build ## 后台启动（日志写 $(LOG)，用 make logs / make s
 		PID=$$!; disown $$PID 2>/dev/null || true; \
 		echo $$PID > /tmp/gov-flask.pid; \
 		printf "$(C_GREEN)[ok]$(C_OFF) 已后台启动 PID $$PID\n"
-	@sleep 5
-	@if curl -sf http://127.0.0.1:$(PORT)/api/c-auth/me >/dev/null 2>&1; then \
+	@sleep 12
+	@if curl -sf http://127.0.0.1:$(PORT)/api/guide/topics >/dev/null 2>&1; then \
 		printf "$(C_GREEN)[ok]$(C_OFF) 健康检查通过 → http://127.0.0.1:$(PORT)\n"; \
 	else \
 		printf "$(C_RED)[err]$(C_OFF) 健康检查失败，查看日志：$(C_GREEN)make logs$(C_OFF)\n"; \
