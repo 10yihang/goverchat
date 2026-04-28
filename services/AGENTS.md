@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-9 个文件，分两类：**有状态单例**（TFIDFService / ASRService — 持有重资源 + 双检锁 + 守护线程预热）与**无状态服务**（其余全部 — 模块加载即可用）。`chat_service.answer()` 是核心编排入口，三模态请求最终都汇聚到这里。
+15 个文件，分两类：**有状态单例**（TFIDFService / ASRService — 持有重资源 + 双检锁 + 守护线程预热）与**无状态服务**（其余全部 — 模块加载即可用）。`chat_service.answer()` 是核心编排入口，三模态请求最终都汇聚到这里。
 
 ## WHERE TO LOOK
 
@@ -22,6 +22,12 @@
 | 鉴权装饰器 | `auth_service.py:81,91` (`login_required` / `admin_required`) |
 | 请求耗时/错误聚合 | `metrics_service.py` — `deque(maxlen=300)`，仅供 `/api/admin/overview` 展示 |
 | 业务引导主题 | `guide_service.py` — 只是 `service_catalog` 的 DTO 视图，无独立数据 |
+| **LLM 意图识别** | `llm_service.py` — OpenAI 兼容 API；`recognize_intent()` → form_prompt；`ask()` 聊天补全 |
+| **C 端邮箱验证码登录** | `c_auth_service.py` — `send_code` / `verify_code` / `logout`；冷却+锁定逻辑 |
+| **SMTP 邮件发送** | `email_service.py` — SSL/STARTTLS 双模式；`send_verification_code` / `send_application_notification` |
+| **办理申请全流程** | `application_service.py` — 表单校验 → 生成受理编号 → 落库 → 发邮件 + 状态变更通知 |
+| **用户反馈** | `feedback_service.py` — 收集 session_id + rating + comment |
+| **管理端配置** | `admin_settings.py` — 持久化 sitenotice / maintenance_mode |
 
 ## CONVENTIONS
 
@@ -38,6 +44,9 @@
 - **不要并发调 `service_catalog.upsert_item()`**：`_save_all()` 是裸 `Path.write_text()`，无锁；目前只在 admin 路由调用，假设单管理员串行操作。
 - **不要给 `metrics_service` 加多进程汇总**：`deque` 仅本进程内存有效；`gunicorn -w >1` 多 worker 会导致每个 worker 独立计数。
 - **不要修改 `chat_service.answer()` 的写库顺序**：先 user 后 bot 的固定顺序保证前端按 id 升序拉历史时排版正确。
+- **不要把 SMTP 凭证硬编码**：`email_service.py` 全部走 `config.SMTP_*`；生产前必须在 `.env` 或环境变量中设置。
+- **不要在非 DEBUG 模式下暴露验证码**：`c_auth_service.py` 的 `dev_code` 字段仅 `FLASK_DEBUG=true` 时返回。
+- **不要把 `form_prompt` 当必返字段**：意图识别置信度 < `LLM_INTENT_THRESHOLD` 时 `form_prompt` 为 None，前端据此不展开表单。
 
 ## UNIQUE STYLES
 

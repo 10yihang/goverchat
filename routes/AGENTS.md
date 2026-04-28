@@ -1,10 +1,10 @@
-# routes/ — 8 个 Blueprint，31 个 Endpoint
+# routes/ — 10 个 Blueprint，~40 个 Endpoint
 
 > 父：`../AGENTS.md`。这一层是薄控制器：JSON 解析 → `.strip()` → 调 service → `jsonify`。除两处历史例外（见下），都禁止写 SQL / 业务逻辑。
 
 ## OVERVIEW
 
-注册顺序由 `app.py:39-56` 决定。所有 `/api/*` 路径错误返回 JSON（`app.py:errorhandler`），HTML 路径 404 返回 `docs.html`。`@admin_required` 仅施加于 `admin.py` 13 个端点 + `app.py` 的 `/admin` HTML 入口。
+注册顺序由 `app.py:65-86` 决定。所有 `/api/*` 路径错误返回 JSON（`app.py:errorhandler`），HTML 路径 404 返回 `docs.html`。`@admin_required` 仅施加于 `admin.py` 13 个端点 + `app.py` 的 `/admin` HTML 入口。`@login_required`（C 端）施加于 chat/history/applications/c-auth 部分端点。
 
 ## WHERE TO LOOK
 
@@ -37,6 +37,16 @@
 | `GET /api/service/items` | `service_center.py:10` | `service_catalog_service.list_items` + `categories` + `hot_items` | — |
 | `GET /api/service/items/<slug>` | `service_center.py:24` | `service_catalog_service.get_item` | — |
 | `POST /api/service/progress/query` | `service_center.py:32` | `service_catalog_service.query_progress` | — |
+| `POST /api/c-auth/send-code` | `c_auth.py:10` | `c_auth_service.send_code` | — |
+| `POST /api/c-auth/verify-code` | `c_auth.py:22` | `c_auth_service.verify_code` | — |
+| `POST /api/c-auth/logout` | `c_auth.py:34` | `c_auth_service.logout` | — |
+| `GET /api/c-auth/me` | `c_auth.py:40` | `current_user` | C login |
+| `POST /api/applications` | `applications.py:10` | `application_service.submit` | C login |
+| `GET /api/applications` | `applications.py:30` | `application_service.list_by_user` | C login |
+| `GET /api/applications/<query_no>` | `applications.py:42` | `application_service.get_by_query_no` | C login |
+| `GET /api/halls` | `service_center.py` | `service_catalog_service` | — |
+| `GET /api/halls/<id>` | `service_center.py` | `service_catalog_service` | — |
+| `POST /api/chat/feedback` | `chat.py:92` | `feedback_service.submit_feedback` | C login |
 
 ## CONVENTIONS
 

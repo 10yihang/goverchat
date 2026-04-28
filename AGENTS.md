@@ -1,23 +1,23 @@
 # AGENTS.md — 政务智聊 Project Knowledge Base
 
-**Generated:** 2026-04-23 · **Mode:** post-Phase 4 SPA cutover · **Scope:** Flask + MySQL + TF-IDF + Whisper + Tesseract 多模态政务问答原型，**前端已迁移到 React SPA**
+**Generated:** 2026-04-28 · **Mode:** post-Phase 5 inline-submission · **Scope:** Flask + MySQL + TF-IDF + Whisper + Tesseract + LLM + SMTP 多模态政务问答原型，前端 React SPA
 
 ---
 
 ## OVERVIEW
 
-毕业设计原型。Flask 工厂 (`app.py`) 注册 8 个 Blueprint，编排本地 TF-IDF 检索（jieba+sklearn）→ 可选 SearXNG 联网回退 → 三模态输入（文本 / Whisper 语音 / Tesseract OCR 图片）。前端是独立 React SPA（`frontend/`，6125 LOC TS），构建产物 `static/dist/` 由 Flask 单端口托管（`SERVE_SPA=true`）。后台管理改动知识库后立即触发 TF-IDF 异步热更新。**~2.6K LOC Python 后端 + ~6K LOC TypeScript 前端。**
+毕业设计原型。Flask 工厂 (`app.py`) 注册 10 个 Blueprint，编排本地 TF-IDF 检索（jieba+sklearn）→ 可选 SearXNG 联网回退 → LLM 意图识别 → 三模态输入（文本 / Whisper 语音 / Tesseract OCR 图片）→ 聊天内联办理（表单提交 + SMTP 邮件通知）。前端是独立 React SPA（`frontend/`，9055 LOC TS），构建产物 `static/dist/` 由 Flask 单端口托管（`SERVE_SPA=true`）。后台管理改动知识库后立即触发 TF-IDF 异步热更新。**~5.7K LOC Python 后端 + ~9.1K LOC TypeScript 前端。**
 
 ## STRUCTURE
 
 ```
 project_gr/
-├── app.py                # Flask 工厂 + 8 蓝图 + 启动钩子 + SPA 静态托管（SERVE_SPA gated）
-├── config.py             # 全部配置（30+ 项），所有可被环境变量覆盖
-├── routes/   → routes/AGENTS.md     # 8 个 Blueprint，31 个 endpoint
-├── services/ → services/AGENTS.md   # 业务编排 + 单例 + 线程池
-├── models/   → models/AGENTS.md     # PyMySQL 连接池 + 4 张表 CRUD
-├── frontend/ → frontend/AGENTS.md   # ★ React 19 + Vite + TS SPA（64 文件）
+├── app.py                # Flask 工厂 + 10 蓝图 + 启动钩子 + SPA 静态托管（SERVE_SPA gated）
+├── config.py             # 全部配置（40+ 项），所有可被环境变量覆盖
+├── routes/   → routes/AGENTS.md     # 10 个 Blueprint，~40 个 endpoint
+├── services/ → services/AGENTS.md   # 业务编排 + 单例 + 线程池 + LLM + SMTP
+├── models/   → models/AGENTS.md     # PyMySQL 连接池 + 7 张表 CRUD
+├── frontend/ → frontend/AGENTS.md   # ★ React 19 + Vite + TS SPA（~64 文件）
 ├── static/
 │   ├── dist/             # ★ React 构建产物（npm run build 输出，gitignore）
 │   └── downloads/        # 7 个事项材料 .txt（仍由 Flask 静态服务）
@@ -33,8 +33,8 @@ project_gr/
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
+| Task | Location | Notes |
+|------|----------|-------|
 | 改前端任何 UI / 加新页面 | `frontend/` → 见 `frontend/AGENTS.md` |
 | 新增 HTTP 接口 | `routes/<blueprint>.py` → 调 `services/` |
 | 改问答编排逻辑 | `services/chat_service.py:answer()` |
@@ -48,6 +48,11 @@ project_gr/
 | 重建 / 导入知识库 | `mysql -u root -p < scripts/init_db.sql` 然后 `python scripts/import_knowledge.py [--truncate]` |
 | 验证联网搜索 | `python scripts/test_web_search.py` |
 | Phase 4 切换实施 / 回滚 / 故障排查 | `PHASE4_CUTOVER.md` |
+| 改 C 端登录（邮箱验证码） | `services/c_auth_service.py` + `routes/c_auth.py` + `models/c_user.py` + `models/email_code.py` |
+| 改聊天内联办理 / 申请提交 | `services/application_service.py` + `routes/applications.py` + `models/application.py` |
+| 改 SMTP 邮件通知 | `services/email_service.py` → 被 `application_service.py` 与 `c_auth_service.py` 调用 |
+| 改 LLM 意图识别 / 表单弹窗 | `services/llm_service.py` → `chat_service.answer()` 调用 |
+| 添加入库后的脚本 | `scripts/` → 见新建的 `scripts/AGENTS.md` |
 
 ## CODE MAP
 
@@ -66,6 +71,11 @@ project_gr/
 | `admin_required` / `login_required` | decorator | `services/auth_service.py:91,81` | Flask session-based；API 路径 → JSON 401/403，HTML 路径 → redirect |
 | `App` (前端) | router | `frontend/src/App.tsx` | React Router + QueryClientProvider + 7 lazy routes + Toaster |
 | `apiClient` (前端) | fetch wrapper | `frontend/src/lib/apiClient.ts` | credentials:include + 503 中文化 + ApiError 包装 |
+| `LLMService` | stateless | `services/llm_service.py` | OpenAI 兼容 API 调用；意图识别（识别办事意图→返回 form_prompt）；聊天补全 |
+| `CAuthService` | stateless | `services/c_auth_service.py` | C 端邮箱验证码登录：send_code / verify_code / logout |
+| `EmailService` | stateless | `services/email_service.py` | SMTP 邮件发送（ssl/tls）；被 c_auth 与 application 两处调用 |
+| `ApplicationService` | stateless | `services/application_service.py` | 办理申请全流程：表单校验 → 生成受理编号 → 落库 → 发邮件 |
+| `FeedbackService` | stateless | `services/feedback_service.py` | 用户反馈收集与存储 |
 
 ## CONVENTIONS
 
@@ -76,6 +86,9 @@ project_gr/
 - 中文 logger 标签前缀：`[TF-IDF]` / `[ASR]` / `[OCR]` / `[ChatService]` / `[Startup]` / `[WebSearch]` —— 沿用，方便 grep 日志。
 - 会话标识用 `uuid.uuid4()`；前端 localStorage key 为 `gov_session_id`（`frontend/src/stores/chatStore.ts`，与旧前端兼容）。
 - 前端所有 API 调用走 `frontend/src/lib/apiClient.ts`（credentials:include），由 TanStack Query 缓存。
+- LLM 调用走 `services/llm_service.py`；意图识别结果通过 `chat_service.answer()` 的 `form_prompt` 字段下发前端，前端据此展开内联表单。
+- 邮箱验证码 5 分钟过期、60s 重发冷却、5 次错误锁定；`FLASK_DEBUG=true` 时验证码通过 `dev_code` 字段返回前端（仅开发用）。
+- SMTP 邮件通知在申请提交和状态变更时自动触发；`application_service.py` 调 `email_service.py` 完成闭环。
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -90,6 +103,9 @@ project_gr/
 - **不要把 `/api/history/<session_id>` 当受保护接口**：当前无鉴权，任何人能拉别人会话；公开演示版可接受，正式上线前必须加权限（需要 schema 变更，加 `chat_session.user_id` 列）。
 - **不要把 `static/dist/` commit 进 git**：构建产物。同样 `frontend/node_modules/`。建议加 `.gitignore`。
 - **不要改 React 的 `vite.config.ts` 的 `base: './'`**：Flask 静态托管必须用相对路径。
+- **不要把验证码的 `dev_code` 字段暴露到生产**：仅 `FLASK_DEBUG=true` 时写入 API 响应；生产环境 DEBUG=false 时该字段不存在。
+- **不要在无 SMTP 配置时强制发送邮件**：`email_service.py` 会在未配置时写日志；生产部署必须配置完整 SMTP 参数。
+- **不要把 LLM 意图识别当确定性逻辑**：`LLM_INTENT_THRESHOLD` 控制精度，表单弹窗走 `form_prompt` 字段；前端有 service_card "立即办理" 按钮作为兜底路径。
 
 ## UNIQUE STYLES
 
@@ -132,7 +148,7 @@ python scripts/test_web_search.py
 
 ## NOTES
 
-- **不是 git 仓库**：`/Users/huangyihang/Code/project_gr` 无 `.git`；提交流程依赖外部备份。
+- **不是 git 仓库**：`/Users/huangyihang/Code/project_gr` 无 `.git`；提交流程依赖外部备份。（注：当前工作树 `/Users/huangyihang/Documents/Code/Py/goverchat` 是 git 仓库，commit `27fccde`，branch `main`）
 - **`requirements.txt` 不带 OCR / Web 依赖**：`tesseract` 是系统二进制（PATH 或 `TESSERACT_CMD`）；SearXNG 也是外部服务（`scripts/searxng-settings.yml` 是参考样例，非自动启动）。
 - **首启 Whisper 会下载 466MB 到 `~/.cache/whisper/`**：内网/无网环境提前手动 `whisper.load_model("small")`。
 - **README 与实情有出入**：早期 README 写"100 条知识 / 10 个分类"，当前 `data/knowledge.csv` 实为 37 行 / 6 个分类。修改前先核对。

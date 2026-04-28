@@ -1,10 +1,10 @@
-# models/ — DB 连接池与 4 张表 CRUD
+# models/ — DB 连接池与 7 张表 CRUD
 
 > 父：`../AGENTS.md`。所有 SQL 在这里；外部只通过 `db.execute()` 或本目录公开函数访问数据库。建表 DDL 在 `../scripts/init_db.sql`。
 
 ## OVERVIEW
 
-5 个文件：`db.py` 池化 + 通用 `execute()`；`knowledge.py` / `conversation.py` / `user.py` 是表级 CRUD。所有函数返回 `dict` / `list[dict]` / 标量 / `None`，对外保持 dict-cursor 形态。**事务不暴露**：每个 `execute(commit=True)` 都是独立事务，跨表操作没有事务包装。
+10 个文件：`db.py` 池化 + 通用 `execute()`；`knowledge.py` / `conversation.py` / `user.py` / `c_user.py` / `application.py` / `email_code.py` / `feedback.py` / `admin_settings.py` 是表级 CRUD。所有函数返回 `dict` / `list[dict]` / 标量 / `None`，对外保持 dict-cursor 形态。**事务不暴露**：每个 `execute(commit=True)` 都是独立事务，跨表操作没有事务包装。
 
 ## SCHEMA SUMMARY
 
@@ -16,6 +16,11 @@
 | `chat_session` | id, session_id (UQ), user_agent (≤512), ip_address, created_at | `uq_session_id` | session_id = uuid4 字符串；user_agent 入库前在 `conversation.py:21` 截断 |
 | `chat_message` | id, session_id (FK), role enum, content, msg_type enum, confidence DECIMAL(6,4), knowledge_id, created_at | `idx_session`, `idx_knowledge`, FK CASCADE | role ∈ {user,bot}; msg_type ∈ {text,voice}（无 image，OCR 走 text） |
 | `sys_user` | id, username (UQ), password, salt, role enum, is_active, created_at | `uq_username` | password = `SHA256(plain+salt)`，salt 16 字节 hex；role ∈ {admin,viewer} |
+| `c_user` | id, email (UQ), nickname, is_active, created_at, last_login_at | `uq_email` | C 端用户（邮箱+验证码登录，无密码）；与 sys_user 体系分离 |
+| `email_verification_code` | id, email, code, expires_at, attempts, is_used, created_at | `idx_email` | 6 位验证码，5 分钟过期，5 次错误锁定，60s 重发冷却 |
+| `service_application` | id, query_no (UQ), user_id, service_slug, form_data JSON, status, created_at, updated_at | `uq_query_no`, `idx_user`, `idx_status` | 办理申请；状态变更后 `application_service` 自动发邮件通知 |
+| `user_feedback` | id, session_id, rating, comment, created_at | — | 用户反馈；`feedback_service` 负责写入 |
+| `admin_settings` | id, key (UQ), value, updated_at | `uq_key` | 管理端配置项持久化（如首页公告、维护模式） |
 
 ## WHERE TO LOOK
 
@@ -26,6 +31,11 @@
 | 请求结束自动归还连接 | `db.py:47` (`close_db`) — 由 `app.teardown_appcontext` 注册 |
 | TF-IDF 矩阵的数据源 | `knowledge.py:9` (`get_all_active`) — 只取 `is_active=1`，按 `weight DESC, id ASC` |
 | 知识写操作 → 必须配 reload | `knowledge.py:26,36,57` (`insert/update/soft_delete`) |
+| C 端用户 CRUD | `c_user.py` — `find_by_email` / `create` / `update_last_login` |
+| 验证码存取 | `email_code.py` — `create` / `find_valid` / `increment_attempts` / `mark_used` |
+| 办理申请 CRUD | `application.py` — `create` / `find_by_query_no` / `list_by_user` / `update_status` / `list_all` |
+| 用户反馈写入 | `feedback.py` — `create`（session_id + rating + comment） |
+| 管理端配置 | `admin_settings.py` — `get` / `set`（key-value，仅有 sitenotice / maintenance_mode 两个 key） |
 | 动态字段更新模板 | `knowledge.py:36-54` 与 `user.py:49-75` —— 列名拼 f-string，但 mapping 写死，无注入 |
 | 创建 / 校验会话 | `conversation.py:14` (`create_session`) / `:25` (`session_exists`) |
 | 写消息 | `conversation.py:101` (`add_message`) — `chat_service.answer()` 调两次（user+bot） |
