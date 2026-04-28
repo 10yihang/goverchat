@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-Vite + React 19 + TypeScript + Tailwind v4 + TanStack Query v5 + Zustand + React Router v6。**6125 LOC TS / 64 文件**。所有数据来自 Flask `/api/*`（同源，dev 通过 vite proxy）。无 SSR、无状态共享后端。生产构建 105 KB gzipped 首屏。
+Vite + React 19 + TypeScript + Tailwind v4 + TanStack Query v5 + Zustand + React Router v6。**~9055 LOC TS / ~64 文件**。所有数据来自 Flask `/api/*`（同源，dev 通过 vite proxy）。无 SSR、无状态共享后端。生产构建 105 KB gzipped 首屏。
 
 ## STRUCTURE
 
@@ -16,22 +16,24 @@ frontend/
 ├── index.html            # 唯一 HTML 入口
 └── src/
     ├── main.tsx          # createRoot + StrictMode
-    ├── App.tsx           # Router + QueryClientProvider + Toaster + Lazy 7 routes
-    ├── routes/           # 8 个页面（含 NotFoundPage）
+    ├── App.tsx           # Router + QueryClientProvider + Toaster + Lazy 11 routes
+    ├── routes/           # 11 个页面（含 NotFoundPage + AdminLoginPage）
     ├── components/
     │   ├── ui/           # 13 个 shadcn 风格基础组件（Button/Card/Tabs/Dialog/Table/Select/...）
-    │   ├── layout/       # Header / Footer / ProtectedRoute / PageLoader / ErrorBoundary / AppLayout
+    │   ├── layout/       # Header / Footer / ProtectedRoute / CAuthGuard / PageLoader / ErrorBoundary / AppLayout
     │   ├── chat/         # 7 个组件：MessageBubble / ChatComposer / SessionSidebar / QuickPanel / MessageList / ChatTopBar / TypingIndicator
-    │   ├── admin/        # 7 个：4 个 Tab + 3 个 FormDialog
+    │   ├── admin/        # 7 个：4 个 Tab + 3 个 FormDialog（含 application Tab）
     │   ├── service/      # 4 个：CategoryFilter / ItemCard / ItemDetail / ProgressForm
     │   ├── guide/        # 2 个：TopicSidebar / TopicDetail
+    │   ├── halls/        # 6 个：地图 + 列表 + 详情（附近政务大厅模块）
     │   └── docs/         # 2 个：EndpointCard / GroupSection
     ├── hooks/
-    │   ├── api/          # 6 个 domain hooks：useAuth / useChat / useGuide / useService / useAdmin / (useChat 含 voice/image)
+    │   ├── api/          # 8 个 domain hooks：useAuth / useCAuth / useChat / useGuide / useService / useAdmin / useApplication / useHalls
     │   └── useVoiceRecorder.ts  # MediaRecorder 自定义 hook
-    ├── stores/           # Zustand：chatStore (activeSessionId, persisted) + uiStore
+    ├── stores/           # Zustand：cAuthStore + chatStore (activeSessionId, persisted) + uiStore
     ├── lib/              # apiClient (fetch + 503 i18n) + queryClient + utils (cn/formatDateTime)
     ├── types/api.ts      # 10+ 个核心 type，与 Flask 响应 1:1 对齐
+    ├── data/             # 静态数据（halls.json 等）
     └── styles/globals.css  # Tailwind v4 + CSS vars (深政务蓝/金/赭红 + Noto Serif/Sans/Mono)
 ```
 
@@ -46,6 +48,10 @@ frontend/
 | 改 TanStack Query 默认（staleTime/retry） | `lib/queryClient.ts` |
 | 加新页面 | `routes/<Page>.tsx` + `App.tsx` lazy import + Header NAV_ITEMS |
 | 改 admin 4 个 Tab 内容 | `components/admin/<Tab>.tsx`（OverviewTab/KnowledgeTab/UsersTab/ServiceItemsTab） |
+| 改 C 端邮箱登录 | `routes/LoginPage.tsx` + `hooks/api/useCAuth.ts` + `components/layout/CAuthGuard.tsx` |
+| 改聊天内联表单（办理） | `components/chat/MessageBubble.tsx` `form_prompt` 分支 + `hooks/api/useApplication.ts` |
+| 改变理申请管理（admin） | `components/admin/ApplicationsTab.tsx` + `hooks/api/useAdmin.ts` 的 application 方法 |
+| 改附近政务大厅 | `routes/HallsPage.tsx` + `routes/HallDetailPage.tsx` + `hooks/api/useHalls.ts` |
 | 改 chat 消息气泡样式 | `components/chat/MessageBubble.tsx` |
 | 改语音录制（MediaRecorder mime/duration） | `hooks/useVoiceRecorder.ts` |
 | 改 admin 重建 TF-IDF 轮询逻辑 | `components/admin/KnowledgeTab.tsx` + `useAdminOverview({enablePolling})` |
@@ -59,7 +65,7 @@ frontend/
 - **路由懒加载**：每个 route `React.lazy()` 包；`<Suspense fallback={<PageLoader />}>` 兜底。
 - **CSS 变量优先**：内联样式用 `style={{ background: "var(--color-primary)" }}`；不要 hardcode 十六进制颜色。
 - **路径别名**：`import { x } from "@/lib/utils"`，不写相对 `../../`。
-- **Zustand persist**：仅 `chatStore.activeSessionId` 走 localStorage（key=`gov_session_id`，与旧版兼容）。其他 UI 状态不持久化。
+- **Zustand persist**：`chatStore.activeSessionId` 走 localStorage（key=`gov_session_id`，与旧版兼容）；`cAuthStore` 不持久化（依赖 session cookie）。其他 UI 状态不持久化。
 - **shadcn 风格组件命名**：PascalCase 文件名 + 单一组件主导（`Button.tsx`/`Dialog.tsx`/`Tabs.tsx`），副组件用命名 export。
 - **Tailwind v4 `@theme`**：所有设计令牌在 `globals.css` 顶部 `@theme` 块；不要散到 tailwind.config.ts（v4 推荐 inline）。
 
@@ -72,6 +78,9 @@ frontend/
 - **不要绕过 ProtectedRoute**：admin 路径只能通过 `<ProtectedRoute requireRole="admin">` 包裹访问；否则 `useMe()` 401 也展示页面。
 - **不要在生产 bundle 引入 chart 库**：admin 页面 KPI 图用纯 CSS bar（已在 OverviewTab 实现）；想加复杂图先评估首屏 bundle 增量。
 - **不要改 vite.config.ts 的 `base: './'`**：Flask 静态托管必须用相对路径（不然 build 出来的 index.html 里 `/assets/...` 会被 Flask 当成路由）。
+- **不要把 chat 页面的 CAuthGuard 跳过**：C 端用户必须在邮箱登录后才能进入聊天页和办事中心；未登录自动重定向到 `/login`。
+- **不要直接调 `form_prompt` 而不检查 null**：LLM 意图识别不一定返回表单，前端必须 `form_prompt ? <InlineForm .../> : null`。
+- **不要把 halls.json 当 API 数据**：`frontend/src/data/halls.json` 是静态演示数据；接真实数据后替换为 API 调用。
 
 ## UNIQUE STYLES
 
