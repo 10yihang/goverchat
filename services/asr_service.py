@@ -114,6 +114,12 @@ class ASRService:
                     fp16=config.WHISPER_FP16,
                 )
             text = result.get("text", "").strip()
+            # Whisper 默认倾向输出繁体，统一转简体
+            try:
+                from zhconv import convert
+                text = convert(text, "zh-cn")
+            except ImportError:
+                pass
             logger.info("[ASR] 转录结果：%s", text[:100])
             return text
 
