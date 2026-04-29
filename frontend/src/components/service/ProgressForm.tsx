@@ -20,9 +20,10 @@ import {
   Circle,
   AlertCircle,
   Search,
+  ArrowRight,
+  Share2,
 } from "lucide-react"
 import { useProgressQuery } from "@/hooks/api/useService"
-import { formatDateTime } from "@/lib/utils"
 import { toast } from "sonner"
 import type { ServiceItem, ProgressRecord, ProgressTimelineEntry } from "@/types/api"
 
@@ -108,120 +109,148 @@ export function ProgressForm({ items }: ProgressFormProps) {
 }
 
 function ProgressResult({ record }: { record: ProgressRecord }) {
+  const meta = record.status_meta ?? { color: "var(--color-primary)", icon: "help-circle" }
+  const color = meta.color.startsWith("#") || meta.color.startsWith("var") ? meta.color : "var(--color-primary)"
+
   return (
-    <div className="mt-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="primary">{record.status}</Badge>
-        <Badge tone="gold">{record.stage}</Badge>
-        {record.is_real ? (
-          <Badge tone="success">实时记录</Badge>
-        ) : (
-          <Badge tone="neutral">演示数据</Badge>
+    <div className="mt-6 space-y-5">
+      <div
+        className="rounded-lg p-4"
+        style={{
+          background: `color-mix(in oklab, ${color} 8%, transparent)`,
+          borderLeft: `3px solid ${color}`,
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="font-serif text-base font-bold">{record.query_no}</span>
+          <Badge tone="primary">{record.status}</Badge>
+        </div>
+        {record.service_title && (
+          <p className="mt-1 text-sm text-muted-foreground">{record.service_title}</p>
         )}
-        <span className="text-xs text-muted-foreground">
-          更新于 {formatDateTime(record.updated_at)}
-        </span>
+        {record.applicant_name && (
+          <p className="text-xs text-muted-foreground">申请人：{record.applicant_name}</p>
+        )}
+        <p className="mt-1 text-xs text-muted-foreground">
+          最近更新：{record.updated_at}
+          {record.is_real ? <Badge tone="success" className="ml-2 text-[10px]">实时</Badge> : <Badge tone="neutral" className="ml-2 text-[10px]">演示</Badge>}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            const url = `${window.location.origin}/service-center?slug=${encodeURIComponent(record.service_title || "")}`
+            const text = `【政务智聊】办理进度\n受理编号：${record.query_no}\n事项：${record.service_title || ""}\n当前状态：${record.status}\n查询链接：${url}`
+            navigator.clipboard.writeText(text).then(
+              () => toast.success("已复制分享信息到剪贴板"),
+              () => toast.error("复制失败")
+            )
+          }}
+          className="mt-2 inline-flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-[var(--color-muted)]"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <Share2 className="h-3 w-3" />
+          复制分享链接
+        </button>
       </div>
 
-      {(record.service_title || record.applicant_name) && (
-        <div
-          className="rounded-md p-3 text-xs"
-          style={{
-            background: "color-mix(in oklab, var(--color-primary) 5%, transparent)",
-            borderLeft: "2px solid var(--color-primary)",
-          }}
-        >
-          {record.service_title && (
-            <div>
-              <span className="text-muted-foreground">事项：</span>
-              <span className="font-medium">{record.service_title}</span>
-            </div>
-          )}
-          {record.applicant_name && (
-            <div className="mt-1">
-              <span className="text-muted-foreground">申请人：</span>
-              <span className="font-medium">{record.applicant_name}</span>
-            </div>
-          )}
-          <div className="mt-1">
-            <span className="text-muted-foreground">受理编号：</span>
-            <span className="font-mono font-medium">{record.query_no}</span>
-          </div>
-        </div>
-      )}
-
-      <Timeline entries={record.timeline} />
+      <EnhancedTimeline entries={record.timeline} color={color} />
 
       {record.next_step && (
-        <div className="rounded-md border p-3" style={{ borderColor: "var(--color-border)" }}>
-          <span className="text-xs font-semibold text-muted-foreground">下一步</span>
-          <p className="mt-1 text-sm">{record.next_step}</p>
-        </div>
-      )}
-
-      {record.admin_remark && (
-        <div
-          className="rounded-md p-3"
-          style={{
-            background: "color-mix(in oklab, var(--color-accent-gold) 8%, transparent)",
-            borderLeft: "2px solid var(--color-accent-gold)",
-          }}
-        >
-          <span className="text-xs font-semibold text-muted-foreground">办理人员备注</span>
-          <p className="mt-1 text-sm">{record.admin_remark}</p>
+        <div className="gov-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ArrowRight className="h-4 w-4" style={{ color }} />
+            <span className="text-sm font-bold">下一步</span>
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground">{record.next_step}</p>
         </div>
       )}
 
       {record.pending_materials.length > 0 && (
         <div>
-          <span className="text-xs font-semibold text-muted-foreground">待补材料</span>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">待补充材料</p>
+          <div className="flex flex-wrap gap-1.5">
             {record.pending_materials.map((m, i) => (
-              <Badge key={i} tone="warning">
-                {m}
-              </Badge>
+              <Badge key={i} tone="warning">{m}</Badge>
             ))}
           </div>
+        </div>
+      )}
+
+      {record.admin_remark && (
+        <div
+          className="rounded-md p-3 text-sm"
+          style={{
+            background: "color-mix(in oklab, var(--color-accent-gold) 8%, transparent)",
+            borderLeft: "2px solid var(--color-accent-gold)",
+          }}
+        >
+          <span className="text-xs font-semibold text-muted-foreground">办理备注</span>
+          <p className="mt-1">{record.admin_remark}</p>
         </div>
       )}
     </div>
   )
 }
 
-function Timeline({ entries }: { entries: ProgressTimelineEntry[] }) {
+function EnhancedTimeline({ entries, color }: { entries: ProgressTimelineEntry[]; color: string }) {
   return (
-    <div className="relative ml-3 space-y-4 border-l" style={{ borderColor: "var(--color-primary)" }}>
-      {entries.map((entry, i) => (
-        <div key={i} className="relative pl-6">
-          <span
-            className="absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full"
-            style={
-              entry.done
-                ? { background: "var(--color-primary)" }
-                : {
-                    background: "var(--color-card)",
-                    border: "2px solid var(--color-primary)",
-                  }
-            }
-          />
-          <div className="flex items-center gap-2">
-            {entry.done ? (
-              <CheckCircle2
-                className="h-3.5 w-3.5 shrink-0"
-                style={{ color: "var(--color-primary)" }}
-              />
-            ) : (
-              <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            )}
-            <span className="text-sm font-medium">{entry.label}</span>
+    <div className="relative">
+      {entries.map((entry, i) => {
+        const isLast = i === entries.length - 1
+        const isCurrent = entry.done && (isLast || !entries[i + 1]?.done)
+
+        return (
+          <div key={i} className="flex gap-4">
+            <div className="flex flex-col items-center">
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                  isCurrent ? "animate-pulse" : ""
+                }`}
+                style={{
+                  background: entry.done
+                    ? color
+                    : "var(--color-card)",
+                  border: entry.done ? "none" : `2px solid var(--color-border)`,
+                  color: entry.done ? "#fff" : "var(--color-muted-foreground)",
+                }}
+              >
+                {entry.done ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : isCurrent ? (
+                  <Clock className="h-4 w-4" />
+                ) : (
+                  <Circle className="h-4 w-4" />
+                )}
+              </div>
+              {!isLast && (
+                <div
+                  className="w-0.5 grow"
+                  style={{
+                    background: entry.done
+                      ? color
+                      : "var(--color-border)",
+                    minHeight: "24px",
+                  }}
+                />
+              )}
+            </div>
+
+            <div className={`pb-5 ${isLast ? "" : ""}`}>
+              <p
+                className="text-sm font-semibold"
+                style={{ color: entry.done ? "var(--color-foreground)" : "var(--color-muted-foreground)" }}
+              >
+                {entry.label}
+              </p>
+              {entry.time ? (
+                <p className="mt-0.5 text-xs text-muted-foreground">{entry.time}</p>
+              ) : (
+                <p className="mt-0.5 text-xs italic text-muted-foreground">等待中</p>
+              )}
+            </div>
           </div>
-          {entry.time && (
-            <p className="mt-0.5 pl-5 text-xs text-muted-foreground">
-              {entry.time}
-            </p>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

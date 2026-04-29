@@ -176,3 +176,13 @@ export function useFeedbackList(rating?: "up" | "down") {
     staleTime: 30_000,
   })
 }
+
+const HEALTH_KEY = ["admin", "health"] as const
+
+export function useHealthCheck() {
+  return useQuery<import("@/types/api").HealthCheckResponse>({
+    queryKey: HEALTH_KEY,
+    queryFn: () => api.get<import("@/types/api").HealthCheckResponse>("/api/admin/health"),
+    staleTime: 30_000,
+  })
+}

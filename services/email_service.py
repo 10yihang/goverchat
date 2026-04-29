@@ -245,8 +245,8 @@ def _render_application_submitted(
 </table>
 <p>您可以：</p>
 <ul>
-  <li>在政务智聊聊天中输入受理编号查询进度</li>
-  <li>访问 <a href="{safe_url}" style="color:#0d2c54;">服务中心</a> 跟踪所有申请</li>
+  <li>在聊天中输入受理编号 <b>{safe_no}</b> 查询进度</li>
+  <li>或 <a href="{safe_url}" style="color:#0d2c54;">点击这里</a> 查看办事详情</li>
 </ul>
 """
     return _wrapper(body)
@@ -283,25 +283,30 @@ def _render_status_changed(
 </p>
 <p style="color:#666;">受理编号：<span style="font-family:Consolas,monospace;color:#0d2c54;">{safe_no}</span></p>
 {remark_block}
-<p><a href="{safe_url}" style="display:inline-block;padding:10px 20px;background:#0d2c54;color:#fff;text-decoration:none;border-radius:4px;">查看详情</a></p>
+<p style="text-align:center;margin:20px 0;">
+  <a href="{safe_url}" style="display:inline-block;padding:10px 20px;background:#0d2c54;color:#fff;text-decoration:none;border-radius:4px;">查看办事详情</a>
+</p>
 """
     return _wrapper(body)
 
 
 def _render_welcome(to_email: str) -> str:
-    portal_url = f"{config.PUBLIC_BASE_URL}/chat"
+    login_url = f"{config.PUBLIC_BASE_URL}/login"
     safe_email = escape(to_email)
-    safe_url = escape(portal_url, quote=True)
+    safe_url = escape(login_url, quote=True)
     body = f"""
 <p>欢迎注册政务智聊！</p>
-<p>您可以使用本邮箱 <b>{safe_email}</b> 通过验证码登录平台。</p>
+<p>您可以使用邮箱 <b>{safe_email}</b> 和您设置的密码登录平台。</p>
 <p>平台主要功能：</p>
 <ul>
   <li>智能问答 —— 三模态输入（文字 / 语音 / 图片）</li>
-  <li>办事指南 —— 7 大交管事项材料/流程速查</li>
+  <li>办事指南 —— 交管事项材料/流程速查</li>
   <li>在线办理 —— 聊天里直接填表提交，不用跳页</li>
+  <li>进度追踪 —— 实时查看申请办理状态</li>
 </ul>
-<p><a href="{safe_url}" style="display:inline-block;padding:10px 20px;background:#0d2c54;color:#fff;text-decoration:none;border-radius:4px;">立即体验</a></p>
+<p style="text-align:center;margin:20px 0;">
+  <a href="{safe_url}" style="display:inline-block;padding:12px 24px;background:#0d2c54;color:#fff;text-decoration:none;border-radius:4px;font-size:15px;">进入政务智聊</a>
+</p>
 """
     return _wrapper(body)
 

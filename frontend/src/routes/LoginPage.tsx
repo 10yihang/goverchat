@@ -1,9 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useState, type FormEvent } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { toast } from "sonner"
-import { Mail, Loader2, ArrowLeft, KeyRound } from "lucide-react"
+import { Mail, Loader2, ArrowLeft, Lock } from "lucide-react"
 
-import { useSendCode, useVerifyCode } from "@/hooks/api/useCAuth"
+import { useRegister, useLogin } from "@/hooks/api/useCAuth"
 import {
   Button,
   Input,
@@ -13,105 +13,94 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
 } from "@/components/ui"
 
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 
-type Stage = "email" | "code"
+type TabValue = "login" | "register"
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const sendCode = useSendCode()
-  const verifyCode = useVerifyCode()
+  const registerMut = useRegister()
+  const loginMut = useLogin()
 
-  const [stage, setStage] = useState<Stage>("email")
+  const [tab, setTab] = useState<TabValue>("login")
   const [email, setEmail] = useState("")
-  const [code, setCode] = useState("")
-  const [emailError, setEmailError] = useState<string>("")
-  const [codeError, setCodeError] = useState<string>("")
-  const [cooldown, setCooldown] = useState<number>(0)
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const t = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
-    return () => clearTimeout(t)
-  }, [cooldown])
-
-  function validateEmail(): boolean {
-    const trimmed = email.trim()
-    if (!trimmed) {
-      setEmailError("请输入邮箱")
-      return false
-    }
-    if (!EMAIL_REGEX.test(trimmed)) {
-      setEmailError("邮箱格式不正确")
-      return false
-    }
-    setEmailError("")
-    return true
+  function clearErrors() {
+    setErrors({})
   }
 
-  function handleSendCode(e: FormEvent<HTMLFormElement>) {
+  function handleRegister(e: FormEvent) {
     e.preventDefault()
-    if (!validateEmail()) return
-    if (cooldown > 0) return
-    sendCode.mutate(
-      { email: email.trim() },
+    clearErrors()
+    const errs: Record<string, string> = {}
+
+    const em = email.trim()
+    if (!em) errs.email = "请输入邮箱"
+    else if (!EMAIL_REGEX.test(em)) errs.email = "邮箱格式不正确"
+
+    if (!password) errs.password = "请输入密码"
+    else if (password.length < 6) errs.password = "密码至少 6 位"
+
+    if (password !== confirmPassword) errs.confirmPassword = "两次密码不一致"
+
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      return
+    }
+
+    registerMut.mutate(
+      { email: em, password },
       {
         onSuccess: (data) => {
           toast.success(data.message)
-          setCooldown(data.cooldown ?? 60)
-          setStage("code")
-          if (data.dev_code) {
-            toast.info(`开发模式验证码：${data.dev_code}`, { duration: 30_000 })
-          }
-        },
-        onError: (err) => {
-          toast.error(err.message)
-        },
-      },
-    )
-  }
-
-  function handleVerifyCode(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!/^\d{6}$/.test(code)) {
-      setCodeError("请输入 6 位数字验证码")
-      return
-    }
-    setCodeError("")
-    verifyCode.mutate(
-      { email: email.trim(), code },
-      {
-        onSuccess: () => {
-          toast.success("登录成功")
           const next = searchParams.get("next") ?? "/chat"
           navigate(next, { replace: true })
-        },
-        onError: (err) => {
-          setCodeError(err.message)
-        },
-      },
-    )
-  }
-
-  function handleResend() {
-    if (cooldown > 0) return
-    sendCode.mutate(
-      { email: email.trim() },
-      {
-        onSuccess: (data) => {
-          toast.success("验证码已重发")
-          setCooldown(data.cooldown ?? 60)
-          if (data.dev_code) {
-            toast.info(`开发模式验证码：${data.dev_code}`, { duration: 30_000 })
-          }
         },
         onError: (err) => toast.error(err.message),
       },
     )
   }
+
+  function handleLogin(e: FormEvent) {
+    e.preventDefault()
+    clearErrors()
+    const errs: Record<string, string> = {}
+
+    const em = email.trim()
+    if (!em) errs.email = "请输入邮箱"
+    else if (!EMAIL_REGEX.test(em)) errs.email = "邮箱格式不正确"
+
+    if (!password) errs.password = "请输入密码"
+
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      return
+    }
+
+    loginMut.mutate(
+      { email: em, password },
+      {
+        onSuccess: (data) => {
+          toast.success(data.message)
+          const next = searchParams.get("next") ?? "/chat"
+          navigate(next, { replace: true })
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    )
+  }
+
+  const isPending = registerMut.isPending || loginMut.isPending
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-start justify-center px-4 pt-20">
@@ -127,127 +116,123 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-white/15">
             <Mail className="h-6 w-6" />
           </div>
-          <h1 className="font-serif text-3xl font-bold">邮箱登录</h1>
+          <h1 className="font-serif text-3xl font-bold">
+            {tab === "register" ? "注册账号" : "账号登录"}
+          </h1>
           <p className="mt-2 font-mono text-xs uppercase tracking-widest opacity-70">
-            Citizen Portal · Email + Verification Code
+            Citizen Portal
           </p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {stage === "email" ? "输入邮箱" : "输入验证码"}
+              {tab === "register" ? "创建新账号" : "欢迎回来"}
             </CardTitle>
             <CardDescription>
-              {stage === "email"
-                ? "我们将向该邮箱发送 6 位验证码，无需密码即可登录"
-                : `验证码已发送至 ${email}，5 分钟内有效`}
+              {tab === "register"
+                ? "注册后即可使用全部功能"
+                : "输入邮箱和密码登录"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {stage === "email" ? (
-              <form onSubmit={handleSendCode} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="email">邮箱地址</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    autoFocus
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      if (emailError) setEmailError("")
-                    }}
-                    aria-invalid={!!emailError}
-                  />
-                  {emailError && <p className="text-xs text-red-500">{emailError}</p>}
-                </div>
+            <Tabs value={tab} onValueChange={(v) => { setTab(v as TabValue); clearErrors() }}>
+              <TabsList className="mb-6 w-full">
+                <TabsTrigger value="login" className="flex-1">登录</TabsTrigger>
+                <TabsTrigger value="register" className="flex-1">注册</TabsTrigger>
+              </TabsList>
 
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-full"
-                  disabled={sendCode.isPending || cooldown > 0}
-                >
-                  {sendCode.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      发送中…
-                    </>
-                  ) : cooldown > 0 ? (
-                    `${cooldown} 秒后可重试`
-                  ) : (
-                    "发送验证码"
-                  )}
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyCode} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="code">6 位验证码</Label>
-                  <Input
-                    id="code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    autoFocus
-                    maxLength={6}
-                    placeholder="123456"
-                    value={code}
-                    onChange={(e) => {
-                      setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                      if (codeError) setCodeError("")
-                    }}
-                    aria-invalid={!!codeError}
-                    className="text-center text-lg tracking-[0.5em] font-mono"
-                  />
-                  {codeError && <p className="text-xs text-red-500">{codeError}</p>}
-                </div>
+              <TabsContent value="login">
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">邮箱地址</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      autoFocus
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); if (errors.email) clearErrors() }}
+                    />
+                    {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                  </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setStage("email")
-                      setCode("")
-                      setCodeError("")
-                    }}
-                    className="flex-1"
-                  >
-                    更换邮箱
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="flex-[2]"
-                    disabled={verifyCode.isPending || code.length !== 6}
-                  >
-                    {verifyCode.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        验证中…
-                      </>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">密码</Label>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="输入密码"
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); if (errors.password) clearErrors() }}
+                    />
+                    {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
+                  </div>
+
+                  <Button type="submit" variant="primary" className="w-full" disabled={isPending}>
+                    {loginMut.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />登录中…</>
                     ) : (
-                      <>
-                        <KeyRound className="mr-2 h-4 w-4" />
-                        登 录
-                      </>
+                      <><Lock className="mr-2 h-4 w-4" />登 录</>
                     )}
                   </Button>
-                </div>
+                </form>
+              </TabsContent>
 
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={cooldown > 0 || sendCode.isPending}
-                  className="block w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {cooldown > 0 ? `${cooldown} 秒后可重新发送` : "重新发送验证码"}
-                </button>
-              </form>
-            )}
+              <TabsContent value="register">
+                <form onSubmit={handleRegister} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-email">邮箱地址</Label>
+                    <Input
+                      id="reg-email"
+                      type="email"
+                      autoComplete="email"
+                      autoFocus
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); if (errors.email) clearErrors() }}
+                    />
+                    {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-password">密码</Label>
+                    <Input
+                      id="reg-password"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="至少 6 位"
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); if (errors.password) clearErrors() }}
+                    />
+                    {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-confirm">确认密码</Label>
+                    <Input
+                      id="reg-confirm"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder="再次输入密码"
+                      value={confirmPassword}
+                      onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) clearErrors() }}
+                    />
+                    {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword}</p>}
+                  </div>
+
+                  <Button type="submit" variant="gold" className="w-full" disabled={isPending}>
+                    {registerMut.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />注册中…</>
+                    ) : (
+                      <><Mail className="mr-2 h-4 w-4" />注 册</>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
 
             <div className="mt-6 text-center">
               <Link

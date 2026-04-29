@@ -57,6 +57,7 @@ export interface FormPrompt {
   form_schema: FormSchema
   intent_source?: string
   intent_confidence?: number
+  prefill?: Record<string, string> | null
 }
 
 export interface IntentMeta {
@@ -76,6 +77,8 @@ export interface ChatAnswer {
   answer_source?: AnswerSource
   form_prompt?: FormPrompt | null
   intent_meta?: IntentMeta | null
+  follow_up_questions?: string[]
+  action_card?: ActionCard | null
 }
 
 export interface CUser {
@@ -218,6 +221,7 @@ export interface ProgressRecord {
   service_title?: string
   admin_remark?: string
   is_real?: boolean
+  status_meta?: { color: string; icon: string }
 }
 
 export interface ProgressQueryResponse {
@@ -231,6 +235,7 @@ export interface AdminOverview {
   knowledge_count: number
   session_count: number
   message_count: number
+  c_user_count?: number
   recent_sessions: Array<{
     session_id: string
     created_at: string
@@ -247,6 +252,8 @@ export interface AdminOverview {
   }
   tfidf_ready?: boolean
   tfidf_last_reload_at?: number | null
+  daily_trend?: Array<{ date: string; cnt: number }>
+  app_status_counts?: Record<string, number>
 }
 
 export interface KnowledgeItem {
@@ -343,6 +350,8 @@ export interface StreamDoneEvent {
     message_id: number
     form_prompt?: FormPrompt | null
     answer_source?: AnswerSource
+    follow_up_questions?: string[]
+    action_card?: ActionCard | null
   }
 }
 
@@ -372,4 +381,29 @@ export interface FeedbackStats {
 export interface FeedbackListResponse {
   items: Feedback[]
   stats: FeedbackStats
+}
+
+export interface HealthCheckItem {
+  name: string
+  ok: boolean
+  latency_ms?: number | null
+  detail: string
+  extra?: string | null
+}
+
+export interface HealthCheckResponse {
+  status: "healthy" | "degraded"
+  checks: HealthCheckItem[]
+}
+
+export interface ActionCardAction {
+  label: string
+  type: "tel" | "leave_message" | "navigate"
+  value: string
+}
+
+export interface ActionCard {
+  title: string
+  description: string
+  actions: ActionCardAction[]
 }

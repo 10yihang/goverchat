@@ -8,8 +8,9 @@ import {
   TabsContent,
   Skeleton,
 } from "@/components/ui"
-import { ExternalLink, Download, MessageSquare, BookOpen } from "lucide-react"
+import { ExternalLink, Download, MessageSquare, BookOpen, Printer } from "lucide-react"
 import { useServiceItem } from "@/hooks/api/useService"
+import { openChecklistWindow } from "@/lib/printChecklist"
 import type { ServiceChannel, ServiceFaq } from "@/types/api"
 
 interface ItemDetailProps {
@@ -91,19 +92,38 @@ export function ItemDetail({ slug }: ItemDetailProps) {
         </TabsContent>
       </Tabs>
 
-      {item.download_url && (
-        <a
-          href={item.download_url}
-          target="_blank"
-          rel="noreferrer"
-          className="block"
+      <div className="flex flex-col gap-3">
+        <Button
+          variant="gold"
+          className="w-full gap-2"
+          onClick={() =>
+            openChecklistWindow({
+              title: item.title,
+              category: item.category,
+              materials: item.materials,
+              conditions: item.conditions,
+              tips: item.tips,
+            })
+          }
         >
-          <Button variant="gold" className="w-full gap-2">
-            <Download className="h-4 w-4" />
-            下载 {item.download_name || "办事材料"}
-          </Button>
-        </a>
-      )}
+          <Printer className="h-4 w-4" />
+          打印材料清单
+        </Button>
+
+        {item.download_url && (
+          <a
+            href={item.download_url}
+            target="_blank"
+            rel="noreferrer"
+            className="block"
+          >
+            <Button variant="outline" className="w-full gap-2">
+              <Download className="h-4 w-4" />
+              下载 {item.download_name || "办事材料"}
+            </Button>
+          </a>
+        )}
+      </div>
 
       <div className="flex gap-3">
         <Button variant="outline" size="sm" className="flex-1" asChild>

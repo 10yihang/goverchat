@@ -113,7 +113,7 @@ def list_for_admin(
     sql = f"""
         SELECT id, query_no, user_id, user_email,
                service_slug, service_title,
-               applicant_name, applicant_phone, status, admin_remark,
+               applicant_name, applicant_phone, form_data, status, admin_remark,
                DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS created_at,
                DATE_FORMAT(updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS updated_at
         FROM service_application
@@ -122,7 +122,8 @@ def list_for_admin(
         LIMIT %s
     """
     args.append(limit)
-    return execute(sql, tuple(args), fetchall=True) or []
+    rows = execute(sql, tuple(args), fetchall=True) or []
+    return [_parse_form_data(r) for r in rows]
 
 
 def update_status(

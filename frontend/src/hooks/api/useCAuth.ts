@@ -73,6 +73,61 @@ export function useCLogout() {
   })
 }
 
+interface RegisterVars {
+  email: string
+  password: string
+  display_name?: string
+}
+
+interface RegisterResponse {
+  ok: boolean
+  message: string
+  user: CUser
+  is_new: boolean
+}
+
+export function useRegister() {
+  const qc = useQueryClient()
+  const setUser = useCAuthStore((s) => s.setUser)
+  return useMutation<RegisterResponse, ApiError, RegisterVars>({
+    mutationFn: (v) => api.post<RegisterResponse>("/api/c-auth/register", v),
+    onSuccess: (data) => {
+      setUser(data.user)
+      qc.setQueryData<CAuthMeResponse>(C_AUTH_KEYS.me, {
+        authenticated: true,
+        user: data.user,
+      })
+    },
+  })
+}
+
+interface LoginVars {
+  email: string
+  password: string
+}
+
+interface LoginResponse {
+  ok: boolean
+  message: string
+  user: CUser
+  is_new: boolean
+}
+
+export function useLogin() {
+  const qc = useQueryClient()
+  const setUser = useCAuthStore((s) => s.setUser)
+  return useMutation<LoginResponse, ApiError, LoginVars>({
+    mutationFn: (v) => api.post<LoginResponse>("/api/c-auth/login", v),
+    onSuccess: (data) => {
+      setUser(data.user)
+      qc.setQueryData<CAuthMeResponse>(C_AUTH_KEYS.me, {
+        authenticated: true,
+        user: data.user,
+      })
+    },
+  })
+}
+
 export function useCurrentCUser(): CUser | null {
   return useCAuthStore((s) => s.user)
 }

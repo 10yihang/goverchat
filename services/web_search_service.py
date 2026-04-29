@@ -3,8 +3,9 @@ from __future__ import annotations
 """
 联网搜索服务。
 
-默认面向 SearXNG Search API：
-  GET {endpoint}?q=...&format=json
+支持 Exa Search API（默认）和 SearXNG（可选）。
+  Exa:   POST https://api.exa.ai/search  (需要 EXA_API_KEY)
+  SearX: GET  {endpoint}?q=...&format=json
 """
 import json
 import logging
@@ -14,6 +15,7 @@ from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 import config
+import requests as http_requests
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +24,17 @@ _TAG_RE = re.compile(r"<[^>]+>")
 
 
 class WebSearchService:
-    """基于搜索 API 的轻量网页检索服务。"""
+    """联网检索服务。优先 Exa，回退 SearXNG。"""
 
     def is_enabled(self) -> bool:
-        return config.WEB_SEARCH_ENABLED and bool(config.WEB_SEARCH_ENDPOINT)
+        if not config.WEB_SEARCH_ENABLED:
+            return False
+        provider = config.WEB_SEARCH_PROVIDER.lower().strip()
+        if provider == "exa":
+            return bool(config.EXA_API_KEY)
+        if provider == "searxng":
+            return bool(config.WEB_SEARCH_ENDPOINT)
+        return False
 
     def search(self, query: str, limit: int | None = None) -> list[dict]:
         """返回标准化后的搜索结果列表。"""
@@ -36,14 +45,16 @@ class WebSearchService:
             limit = config.WEB_SEARCH_TOP_K
 
         provider = config.WEB_SEARCH_PROVIDER.lower().strip()
-        if provider != "searxng":
-            logger.warning("[WebSearch] 未支持的 provider：%s", provider)
-            return []
 
         try:
-            return self._search_searxng(query, limit)
+            if provider == "exa":
+                return self._search_exa(query, limit)
+            if provider == "searxng":
+                return self._search_searxng(query, limit)
+            logger.warning("[WebSearch] 未支持的 provider：%s", provider)
+            return []
         except Exception as exc:
-            logger.warning("[WebSearch] 搜索失败：%s", exc)
+            logger.warning("[WebSearch] 搜索失败 provider=%s err=%s", provider, exc)
             return []
 
     def answer(self, query: str) -> dict | None:
@@ -60,6 +71,64 @@ class WebSearchService:
             "sources": sources,
             "answer_source": "web",
         }
+
+    # ── Exa Search ─────────────────────────────────────────────────
+
+    def _search_exa(self, query: str, limit: int) -> list[dict]:
+        """通过 Exa API 搜索。"""
+        payload = {
+            "query": query,
+            "numResults": min(limit, 10),
+            "type": "neural",
+            "contents": {"text": {"maxCharacters": 300}},
+        }
+        resp = http_requests.post(
+            "https://api.exa.ai/search",
+            json=payload,
+            headers={"x-api-key": config.EXA_API_KEY},
+            timeout=config.WEB_SEARCH_TIMEOUT,
+        )
+        resp.raise_for_status()
+        payload_data = resp.json()
+
+        raw_results = payload_data.get("results") or []
+        normalized = []
+        for item in raw_results:
+            url_value = (item.get("url") or "").strip()
+            if not url_value:
+                continue
+
+            title = self._clean_text(item.get("title") or "网页结果")
+            snippet = self._trim_snippet(
+                self._clean_text(item.get("text") or "")
+            )
+            domain = urlparse(url_value).netloc
+
+            normalized.append({
+                "type": "web",
+                "title": title,
+                "question": title,
+                "answer": snippet,
+                "snippet": snippet,
+                "url": url_value,
+                "domain": domain,
+                "category": self._category(domain),
+                "score": float(item.get("score") or 0.8),
+                "is_official": self._is_preferred_domain(domain),
+                "published_date": item.get("publishedDate", ""),
+            })
+
+        # gov.cn 域名优先
+        reranked = sorted(
+            normalized,
+            key=lambda item: (
+                0 if item["is_official"] else 1,
+                -float(item.get("score") or 0.0),
+            )
+        )
+        return reranked[:limit]
+
+    # ── SearXNG（保留兼容）─────────────────────────────────────────
 
     def _search_searxng(self, query: str, limit: int) -> list[dict]:
         actual_query = self._build_query(query)
@@ -117,6 +186,8 @@ class WebSearchService:
 
         return reranked[:limit]
 
+    # ── 公共 ───────────────────────────────────────────────────────
+
     def _compose_answer(self, query: str, sources: list[dict]) -> str:
         top_sources = sources[:3]
         fragments = []
@@ -124,13 +195,13 @@ class WebSearchService:
             title = source.get("title") or "网页结果"
             snippet = source.get("snippet") or "该来源未返回摘要。"
             label = "官方来源" if source.get("is_official") else "网页来源"
-            fragments.append(f"[{label}] {title}：{snippet}")
+            date_str = f" ({source.get('published_date','')})" if source.get("published_date") else ""
+            fragments.append(f"[{label}{date_str}] {title}\n{snippet}")
 
-        joined = "\n".join(f"{idx + 1}. {fragment}" for idx, fragment in enumerate(fragments))
+        joined = "\n\n".join(f"{idx + 1}. {fragment}" for idx, fragment in enumerate(fragments))
         return (
-            f"我没有在本地知识库中找到足够可靠的答案，已为您补充网页检索结果。\n"
-            f"与“{query}”最相关的信息如下：\n{joined}\n"
-            f"以上内容来自网页检索结果，请优先以官方网站或最新政策原文为准。"
+            f"以下是与「{query}」相关的网页搜索结果：\n\n{joined}\n\n"
+            f"以上内容来自 Exa 联网检索，请以官方网站最新信息为准。"
         )
 
     @staticmethod
@@ -151,7 +222,6 @@ class WebSearchService:
     def _build_query(query: str) -> str:
         if not config.WEB_SEARCH_OFFICIAL_ONLY:
             return query
-
         filters = [f"site:{domain}" for domain in config.WEB_SEARCH_PREFERRED_DOMAINS]
         if not filters:
             return query

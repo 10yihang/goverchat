@@ -69,3 +69,24 @@ def query_service_progress():
             200,
         )
     return jsonify({"found": True, "record": record, "message": "查询成功"}), 200
+
+
+@service_center_bp.get("/api/service/items/<slug>/checklist")
+def get_checklist(slug: str):
+    item = service_catalog_service.get_item(slug)
+    if item is None or int(item.get("is_active", 1)) != 1:
+        return jsonify({"error": "not_found", "message": "事项不存在或已停用"}), 404
+
+    materials = item.get("materials", [])
+    conditions = item.get("conditions", [])
+    tips = item.get("tips", [])
+
+    return jsonify({
+        "slug": slug,
+        "title": item["title"],
+        "category": item.get("category", ""),
+        "materials": materials,
+        "conditions": conditions,
+        "tips": tips,
+        "checklist_url": f"/api/service/items/{slug}/checklist",
+    }), 200

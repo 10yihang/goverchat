@@ -108,3 +108,24 @@ def feedback():
     if not result.get("ok"):
         return jsonify(result), 400
     return jsonify(result), 200
+
+
+@chat_bp.post("/api/chat/leave-message")
+@c_login_required
+def leave_message():
+    data = request.get_json(silent=True) or {}
+    contact = (data.get("contact") or data.get("phone") or data.get("email") or "").strip()
+    content = (data.get("content") or data.get("message") or "").strip()
+    user = current_c_user()
+
+    if not content and not contact:
+        return jsonify({"ok": False, "error": "empty", "message": "请提供留言内容或联系方式"}), 400
+
+    logger.info(
+        "[Chat] 用户留言 user_id=%s email=%s contact=%s content=%s",
+        user["id"], user["email"], contact, content[:200]
+    )
+    return jsonify({
+        "ok": True,
+        "message": "留言已提交，工作人员将在 1 个工作日内通过您留下的联系方式回复。"
+    }), 200

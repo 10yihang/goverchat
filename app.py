@@ -71,6 +71,7 @@ def create_app() -> Flask:
     from routes.history import history_bp
     from routes.image import image_bp
     from routes.service_center import service_center_bp
+    from routes.demo import demo_bp
     from routes.voice import voice_bp
     from services.auth_service import admin_required
 
@@ -84,6 +85,7 @@ def create_app() -> Flask:
     app.register_blueprint(guide_bp)
     app.register_blueprint(service_center_bp)
     app.register_blueprint(applications_bp)
+    app.register_blueprint(demo_bp)
 
     @app.before_request
     def before_request() -> None:

@@ -94,6 +94,14 @@ _STATUS_TO_STAGE = {
     "已退回": "已退回",
 }
 
+_STATUS_META = {
+    "已提交": {"color": "#8b5cf6", "icon": "file-text"},
+    "审核中": {"color": "#3b82f6", "icon": "search"},
+    "材料待补充": {"color": "#f59e0b", "icon": "alert-circle"},
+    "办理完成": {"color": "#10b981", "icon": "check-circle"},
+    "已退回": {"color": "#ef4444", "icon": "x-circle"},
+}
+
 
 def _real_record_to_progress_view(record: dict) -> dict:
     status = record["status"]
@@ -143,6 +151,7 @@ def _real_record_to_progress_view(record: dict) -> dict:
         "service_title": record.get("service_title") or "",
         "admin_remark": record.get("admin_remark") or "",
         "is_real": True,
+        "status_meta": _STATUS_META.get(status, {"color": "#6b7280", "icon": "help-circle"}),
     }
 
 
@@ -223,10 +232,15 @@ class ServiceCatalogService:
 
         if normalized_slug:
             record = DEMO_PROGRESS_RECORDS.get((normalized_slug, normalized_no))
+            if record:
+                record = dict(record)
+                record.setdefault("status_meta", _STATUS_META.get(record["status"], {"color": "#6b7280", "icon": "help-circle"}))
             return (record is not None, record)
 
         for (_, demo_no), demo_rec in DEMO_PROGRESS_RECORDS.items():
             if demo_no == normalized_no:
+                demo_rec = dict(demo_rec)
+                demo_rec.setdefault("status_meta", _STATUS_META.get(demo_rec["status"], {"color": "#6b7280", "icon": "help-circle"}))
                 return True, demo_rec
         return False, None
 

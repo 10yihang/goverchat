@@ -9,6 +9,7 @@ interface MessageListProps {
   messages: DisplayMessage[]
   isLoading: boolean
   isPending: boolean
+  onFollowUpClick?: (text: string) => void
 }
 
 function EmptyState() {
@@ -46,7 +47,7 @@ function LoadingSkeleton() {
   )
 }
 
-export function MessageList({ messages, isLoading, isPending }: MessageListProps) {
+export function MessageList({ messages, isLoading, isPending, onFollowUpClick }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export function MessageList({ messages, isLoading, isPending }: MessageListProps
     <div className="chat-scroll flex-1 overflow-y-auto px-6 py-4">
       <div className="mx-auto max-w-3xl space-y-5">
         {messages.map((msg, i) => (
-          <MessageBubble key={`${msg.created_at ?? ""}-${i}`} message={msg} />
+          <MessageBubble key={`${msg.created_at ?? ""}-${i}`} message={msg} onFollowUpClick={onFollowUpClick} />
         ))}
         {isPending && <TypingIndicator />}
         <div ref={bottomRef} />

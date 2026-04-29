@@ -16,6 +16,7 @@ import { QuickPanel, QuickSheet } from "@/components/chat/QuickPanel"
 import { MessageList } from "@/components/chat/MessageList"
 import { ChatComposer } from "@/components/chat/ChatComposer"
 import { ChatTopBar } from "@/components/chat/ChatTopBar"
+import { DemoRunner } from "@/components/chat/DemoRunner"
 import type { ServiceCard } from "@/types/api"
 
 export default function ChatPage() {
@@ -23,6 +24,7 @@ export default function ChatPage() {
   const [composerText, setComposerText] = useState("")
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [demoOpen, setDemoOpen] = useState(false)
 
   const activeId = useChatStore((s) => s.activeSessionId)
   const setActive = useChatStore((s) => s.setActiveSessionId)
@@ -107,12 +109,18 @@ export default function ChatPage() {
           </Button>
         </div>
 
-        <ChatTopBar sessionId={activeId} onClear={clearSession} />
+        <ChatTopBar
+          sessionId={activeId}
+          onClear={clearSession}
+          onDemoToggle={() => setDemoOpen(!demoOpen)}
+          demoActive={demoOpen}
+        />
 
         <MessageList
           messages={history.data ?? []}
           isLoading={history.isLoading}
           isPending={isPending}
+          onFollowUpClick={handleSendText}
         />
 
         <ChatComposer
@@ -126,7 +134,13 @@ export default function ChatPage() {
       </main>
 
       <div className="hidden min-h-0 lg:block">
-        <QuickPanel onQuickQuestion={handleQuickQuestion} serviceCard={latestServiceCard} />
+        {demoOpen ? (
+          <div className="h-full w-80 border-l" style={{ borderColor: "var(--color-border)" }}>
+            <DemoRunner onClose={() => setDemoOpen(false)} />
+          </div>
+        ) : (
+          <QuickPanel onQuickQuestion={handleQuickQuestion} serviceCard={latestServiceCard} />
+        )}
       </div>
 
       <div className="lg:hidden">

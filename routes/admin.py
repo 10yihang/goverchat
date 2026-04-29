@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 
 import config
@@ -9,6 +11,7 @@ from models.knowledge import count_active, insert, soft_delete, update
 from models.user import count_users, insert_user, list_users, update_user
 from models import application as application_model
 from services.application_service import ApplicationError, application_service
+from services.asr_service import asr_service
 from services.auth_service import (
     admin_required,
     current_user,
@@ -17,6 +20,7 @@ from services.auth_service import (
 )
 from services.llm_service import llm_service
 from services.metrics_service import metrics_service
+from services.ocr_service import ocr_service
 from services.service_catalog import service_catalog_service
 from services.tfidf_service import tfidf_service
 
@@ -87,8 +91,8 @@ def overview():
     categories = [
         {
             "category": row["category"] or "未分类",
-            "cnt": int(row["cnt"]),
-            "pct": round((int(row["cnt"]) / total_knowledge) * 100, 1)
+            "count": int(row["cnt"]),
+            "percentage": round((int(row["cnt"]) / total_knowledge) * 100, 1)
             if total_knowledge
             else 0.0,
         }
@@ -97,13 +101,41 @@ def overview():
     hot_questions = [
         {
             "question": row["question"],
-            "cnt": int(row["cnt"]),
+            "count": int(row["cnt"]),
             "latest_at": row["latest_at"].strftime("%Y-%m-%d %H:%M:%S")
             if row["latest_at"]
             else "",
         }
         for row in hot_question_rows
     ]
+
+    # 近 7 天每日消息量趋势
+    daily_trend_rows = (
+        execute(
+            """
+        SELECT DATE(created_at) AS date, COUNT(*) AS cnt
+        FROM chat_message
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+        """,
+            fetchall=True,
+        )
+        or []
+    )
+    daily_trend = [
+        {"date": row["date"].strftime("%m-%d"), "cnt": int(row["cnt"])}
+        for row in daily_trend_rows
+    ]
+
+    # 办理申请状态分布
+    app_status_counts = application_model.count_by_status()
+
+    # C 端用户数
+    c_user_row = execute(
+        "SELECT COUNT(*) AS cnt FROM c_user", fetchone=True
+    ) or {"cnt": 0}
+
     return jsonify(
         {
             "overview": {
@@ -117,6 +149,9 @@ def overview():
                 "metrics": metrics_service.summary(),
                 "tfidf_ready": tfidf_service.is_ready(),
                 "tfidf_last_reload_at": tfidf_service.last_reload_at,
+                "daily_trend": daily_trend,
+                "app_status_counts": app_status_counts,
+                "c_user_count": int(c_user_row["cnt"]),
             }
         }
     ), 200
@@ -404,3 +439,91 @@ def list_feedback():
             "stats": get_stats(),
         }
     ), 200
+
+
+@admin_bp.get("/api/admin/health")
+@admin_required
+def health_check():
+    import time as _time
+
+    checks: list[dict] = []
+
+    # MySQL
+    mysql_ok = False
+    mysql_latency_ms: float | None = None
+    try:
+        from models.db import get_pool_connection
+        t0 = _time.perf_counter()
+        conn = get_pool_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        finally:
+            conn.close()
+        mysql_latency_ms = round((_time.perf_counter() - t0) * 1000, 1)
+        mysql_ok = True
+    except Exception:
+        mysql_ok = False
+    checks.append({
+        "name": "MySQL", "ok": mysql_ok,
+        "latency_ms": mysql_latency_ms,
+        "detail": f"ping {mysql_latency_ms}ms" if mysql_ok else "连接失败",
+    })
+
+    # TF-IDF
+    tfidf_ready = tfidf_service.is_ready()
+    tfidf_extra = None
+    if tfidf_ready and tfidf_service.last_reload_at:
+        tfidf_extra = datetime.fromtimestamp(tfidf_service.last_reload_at).isoformat()
+    checks.append({
+        "name": "TF-IDF 索引",
+        "ok": tfidf_ready,
+        "detail": "就绪" if tfidf_ready else "未加载",
+        "extra": tfidf_extra,
+    })
+
+    # Whisper / ASR
+    asr_ready = asr_service.is_ready()
+    checks.append({
+        "name": "Whisper ASR",
+        "ok": asr_ready,
+        "detail": f"模型 {config.WHISPER_MODEL}" if asr_ready else "未就绪或加载中",
+    })
+
+    # OCR / Tesseract
+    ocr_ok = ocr_service.is_ready()
+    checks.append({
+        "name": "Tesseract OCR",
+        "ok": ocr_ok,
+        "detail": ocr_service.status(),
+    })
+
+    # LLM
+    llm_ok = llm_service.is_enabled()
+    llm_latency_ms: float | None = None
+    if llm_ok:
+        try:
+            t0 = _time.perf_counter()
+            result = llm_service.chat_completion(
+                [{"role": "user", "content": "ping"}], max_tokens=5
+            )
+            llm_latency_ms = round((_time.perf_counter() - t0) * 1000, 1)
+            if result is None:
+                llm_ok = False
+        except Exception:
+            llm_ok = False
+    checks.append({
+        "name": "LLM API",
+        "ok": llm_ok,
+        "latency_ms": llm_latency_ms,
+        "detail": (
+            f"模型 {config.LLM_MODEL}, ping {llm_latency_ms}ms" if llm_ok
+            else ("已配置但不可达" if config.LLM_API_BASE else "未配置 LLM")
+        ),
+    })
+
+    all_ok = all(c["ok"] for c in checks)
+    return jsonify({
+        "status": "healthy" if all_ok else "degraded",
+        "checks": checks,
+    }), 200

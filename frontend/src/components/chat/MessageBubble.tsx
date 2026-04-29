@@ -8,14 +8,20 @@ import {
   ArrowRight,
   Briefcase,
   Sparkles,
+  CornerDownRight,
+  Phone,
+  MessageSquare,
+  MapPin,
 } from "lucide-react"
 
 import { Badge, Button } from "@/components/ui"
 import { cn } from "@/lib/utils"
-import type { AnswerSource, FormPrompt, KnowledgeSource, ServiceCard } from "@/types/api"
+import type { AnswerSource, FormPrompt, KnowledgeSource, ServiceCard, ActionCard } from "@/types/api"
 import { useFormSchema } from "@/hooks/api/useApplication"
 import { InlineServiceForm } from "./InlineServiceForm"
 import { FeedbackButtons } from "./FeedbackButtons"
+import { api } from "@/lib/apiClient"
+import { toast } from "sonner"
 
 export interface DisplayMessage {
   role: "user" | "bot"
@@ -28,12 +34,15 @@ export interface DisplayMessage {
   service_card?: ServiceCard | null
   answer_source?: AnswerSource
   form_prompt?: FormPrompt | null
+  follow_up_questions?: string[]
+  action_card?: ActionCard | null
   id?: number
   _streaming?: boolean
 }
 
 interface MessageBubbleProps {
   message: DisplayMessage
+  onFollowUpClick?: (text: string) => void
 }
 
 function ConfidenceBadge({ value }: { value: number }) {
@@ -161,7 +170,7 @@ function OnDemandForm({ card }: OnDemandFormProps) {
   )
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onFollowUpClick }: MessageBubbleProps) {
   const isUser = message.role === "user"
   const [manualFormOpen, setManualFormOpen] = useState(false)
 
@@ -237,12 +246,140 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             serviceTitle={formPrompt.service_title}
             schema={formPrompt.form_schema}
             intentSource={formPrompt.intent_source}
+            prefill={formPrompt.prefill ?? null}
           />
         )}
 
         {!isUser && !formPrompt && manualFormOpen && card && card.has_form && (
           <OnDemandForm card={card} />
         )}
+
+        {!isUser && !message._streaming && message.follow_up_questions && message.follow_up_questions.length > 0 && onFollowUpClick && (
+          <div className="mt-2 space-y-1">
+            <p className="text-xs text-muted-foreground">您可能还想问：</p>
+            <div className="flex flex-wrap gap-1.5">
+              {message.follow_up_questions.map((q, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onFollowUpClick(q)}
+                  className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-[var(--color-muted)]"
+                  style={{
+                    borderColor: "var(--color-border)",
+                    color: "var(--color-primary)",
+                  }}
+                >
+                  <CornerDownRight className="h-3 w-3" />
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!isUser && !message._streaming && message.action_card && (
+          <ActionCardInline card={message.action_card} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ActionCardInline({ card }: { card: ActionCard }) {
+  const [leaving, setLeaving] = useState(false)
+  const [leaveMsg, setLeaveMsg] = useState("")
+  const [leaveSent, setLeaveSent] = useState(false)
+  const [showLeave, setShowLeave] = useState(false)
+
+  async function handleLeave() {
+    if (!leaveMsg.trim()) return
+    setLeaving(true)
+    try {
+      await api.post("/api/chat/leave-message", { content: leaveMsg.trim() })
+      setLeaveSent(true)
+      toast.success("留言已提交")
+    } catch {
+      toast.error("留言提交失败")
+    } finally {
+      setLeaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="gov-card mt-3 max-w-sm"
+      style={{ borderLeft: "3px solid var(--color-accent-gold)" }}
+    >
+      <div className="p-3">
+        <p className="text-sm font-bold">{card.title}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{card.description}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {card.actions.map((action, i) => {
+            if (action.type === "tel") {
+              return (
+                <a key={i} href={`tel:${action.value}`} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-[var(--color-muted)]" style={{ borderColor: "var(--color-border)" }}>
+                  <Phone className="h-3 w-3" />{action.label}
+                </a>
+              )
+            }
+            if (action.type === "navigate") {
+              return (
+                <Link key={i} to={action.value} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-[var(--color-muted)]" style={{ borderColor: "var(--color-border)" }}>
+                  <MapPin className="h-3 w-3" />{action.label}
+                </Link>
+              )
+            }
+            if (action.type === "leave_message") {
+              if (leaveSent) {
+                return <span key={i} className="text-xs" style={{ color: "var(--color-success)" }}>✅ 留言已提交</span>
+              }
+              if (showLeave) {
+                return (
+                  <div key={i} className="w-full space-y-1.5">
+                    <input
+                      className="w-full rounded border px-2 py-1 text-xs"
+                      style={{ borderColor: "var(--color-border)" }}
+                      placeholder="请留下您的问题和联系方式..."
+                      value={leaveMsg}
+                      onChange={(e) => setLeaveMsg(e.target.value)}
+                    />
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleLeave}
+                        disabled={leaving || !leaveMsg.trim()}
+                        className="rounded px-2 py-0.5 text-xs text-white"
+                        style={{ background: "var(--color-primary)" }}
+                      >
+                        {leaving ? "提交中…" : "发送"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowLeave(false)}
+                        className="rounded px-2 py-0.5 text-xs"
+                        style={{ color: "var(--color-muted-foreground)" }}
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setShowLeave(true)}
+                  className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-[var(--color-muted)]"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <MessageSquare className="h-3 w-3" />{action.label}
+                </button>
+              )
+            }
+            return null
+          })}
+        </div>
       </div>
     </div>
   )

@@ -22,6 +22,7 @@ function botMsg(d: ChatAnswer): DisplayMessage {
     role: "bot", content: d.answer, msg_type: "text", confidence: d.confidence,
     knowledge_id: d.knowledge_id, sources: d.sources, service_card: d.service_card,
     answer_source: d.answer_source, form_prompt: d.form_prompt,
+    follow_up_questions: d.follow_up_questions,
     created_at: new Date().toISOString(),
   }
 }
@@ -212,6 +213,8 @@ export function useSendMessageStream() {
                 id: evt.data.message_id,
                 form_prompt: evt.data.form_prompt,
                 answer_source: evt.data.answer_source ?? last.answer_source,
+                follow_up_questions: evt.data.follow_up_questions,
+                action_card: evt.data.action_card,
                 _streaming: undefined,
               }
             }
@@ -230,6 +233,7 @@ export function useSendMessageStream() {
         }
       }
       qc.invalidateQueries({ queryKey: KEYS.sessions })
+      qc.invalidateQueries({ queryKey: KEYS.history(sid) })
     },
     onMutate: (v) => ({ prev: v.session_id }),
     onError: (e, v) => {

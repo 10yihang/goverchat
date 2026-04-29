@@ -10,6 +10,7 @@ from flask import g, jsonify, request, session
 import config
 from models import c_user as c_user_model
 from models import email_code as email_code_model
+from services.auth_service import generate_salt, hash_password
 from services.email_service import email_service
 
 logger = logging.getLogger(__name__)
@@ -205,3 +206,76 @@ def c_login_required(view):
         return view(*args, **kwargs)
 
     return wrapped
+
+
+# ── 密码注册 / 登录 ──────────────────────────────────────────────
+
+_MIN_PASSWORD_LEN = 6
+
+
+def register(email: str, password: str, display_name: str = "") -> dict:
+    email = normalize_email(email)
+    password = (password or "").strip()
+    if not is_valid_email(email):
+        return {"ok": False, "error": "invalid_email", "message": "邮箱格式不正确"}
+    if len(password) < _MIN_PASSWORD_LEN:
+        return {
+            "ok": False,
+            "error": "weak_password",
+            "message": f"密码至少 {_MIN_PASSWORD_LEN} 位",
+        }
+
+    existing = c_user_model.get_by_email(email)
+    if existing is not None:
+        return {"ok": False, "error": "email_taken", "message": "该邮箱已注册"}
+
+    if not display_name:
+        display_name = email.split("@")[0]
+
+    salt = generate_salt()
+    pw_hash = hash_password(password, salt)
+    uid = c_user_model.insert_with_password(email, pw_hash, salt, display_name)
+    user = c_user_model.get_by_id(uid)
+
+    public_user = {
+        "id": int(user["id"]),
+        "email": user["email"],
+        "display_name": user.get("display_name") or "",
+    }
+    session[C_SESSION_USER_KEY] = public_user
+    session.permanent = True
+
+    logger.info("[CAuth] 新用户注册 email=%s", email)
+    return {"ok": True, "message": "注册成功", "user": public_user, "is_new": True}
+
+
+def login_with_password(email: str, password: str) -> dict:
+    email = normalize_email(email)
+    password = (password or "").strip()
+    if not is_valid_email(email):
+        return {"ok": False, "error": "invalid_email", "message": "邮箱格式不正确"}
+    if not password:
+        return {"ok": False, "error": "empty_password", "message": "请输入密码"}
+
+    user = c_user_model.get_by_email_with_password(email)
+    if user is None:
+        return {"ok": False, "error": "not_found", "message": "账号不存在，请先注册"}
+    if int(user.get("is_active") or 0) != 1:
+        return {"ok": False, "error": "inactive", "message": "账号已被停用"}
+
+    expected = hash_password(password, user.get("salt") or "")
+    if not user.get("password_hash") or expected != user["password_hash"]:
+        return {"ok": False, "error": "wrong_password", "message": "密码错误"}
+
+    c_user_model.touch_last_login(int(user["id"]))
+
+    public_user = {
+        "id": int(user["id"]),
+        "email": user["email"],
+        "display_name": user.get("display_name") or "",
+    }
+    session[C_SESSION_USER_KEY] = public_user
+    session.permanent = True
+
+    logger.info("[CAuth] 密码登录成功 email=%s", email)
+    return {"ok": True, "message": "登录成功", "user": public_user, "is_new": False}

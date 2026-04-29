@@ -55,9 +55,10 @@ FALLBACK_ANSWER = (
 # Web search fallback
 # ---------------------------------------------------------------------------
 WEB_SEARCH_ENABLED = os.environ.get("WEB_SEARCH_ENABLED", "false").lower() == "true"
-WEB_SEARCH_PROVIDER = os.environ.get("WEB_SEARCH_PROVIDER", "searxng")
+WEB_SEARCH_PROVIDER = os.environ.get("WEB_SEARCH_PROVIDER", "exa")
+EXA_API_KEY = os.environ.get("EXA_API_KEY", "").strip()
 WEB_SEARCH_ENDPOINT = os.environ.get("WEB_SEARCH_ENDPOINT", "").strip()
-WEB_SEARCH_TIMEOUT = float(os.environ.get("WEB_SEARCH_TIMEOUT", 8))
+WEB_SEARCH_TIMEOUT = float(os.environ.get("WEB_SEARCH_TIMEOUT", 10))
 WEB_SEARCH_TOP_K = int(os.environ.get("WEB_SEARCH_TOP_K", 5))
 WEB_SEARCH_TRIGGER_THRESHOLD = float(
     os.environ.get("WEB_SEARCH_TRIGGER_THRESHOLD", 0.35)
@@ -175,7 +176,10 @@ EMAIL_CODE_TTL_SEC = int(os.environ.get("EMAIL_CODE_TTL_SEC", 300))
 EMAIL_CODE_RESEND_COOLDOWN = int(os.environ.get("EMAIL_CODE_RESEND_COOLDOWN", 60))
 EMAIL_CODE_MAX_ATTEMPTS = int(os.environ.get("EMAIL_CODE_MAX_ATTEMPTS", 5))
 EMAIL_CODE_LENGTH = 6
-PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://localhost:5173").strip()
+PUBLIC_BASE_URL = os.environ.get(
+    "PUBLIC_BASE_URL",
+    f"http://localhost:{os.environ.get('PORT', '5000')}"
+).strip()
 
 
 # ---------------------------------------------------------------------------

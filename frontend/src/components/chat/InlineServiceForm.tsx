@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react"
+import { useState, type FormEvent, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy, FileText, Loader2 } from "lucide-react"
+import { CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy, FileText, Loader2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge, Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@/components/ui"
@@ -15,14 +15,15 @@ interface InlineServiceFormProps {
   schema: FormSchema
   intentSource?: string
   initialSubmittedNo?: string | null
+  prefill?: Record<string, string> | null
 }
 
 type FormValues = Record<string, string>
 
-function buildInitial(schema: FormSchema): FormValues {
+function buildInitial(schema: FormSchema, prefill?: Record<string, string> | null): FormValues {
   const out: FormValues = {}
   for (const field of schema.fields) {
-    out[field.name] = ""
+    out[field.name] = (prefill?.[field.name] ?? "")
   }
   return out
 }
@@ -32,11 +33,13 @@ function FieldRow({
   value,
   onChange,
   disabled,
+  prefilled,
 }: {
   field: FormFieldSchema
   value: string
   onChange: (v: string) => void
   disabled: boolean
+  prefilled?: boolean
 }) {
   const id = `field-${field.name}`
   const ariaRequired = field.required ? true : undefined
@@ -47,6 +50,8 @@ function FieldRow({
         <Label htmlFor={id}>
           {field.label}
           {field.required && <span className="ml-1 text-red-500">*</span>}
+          {prefilled && <Sparkles className="ml-1.5 inline h-3 w-3" style={{ color: "var(--color-success)" }} />}
+          {prefilled && <span className="ml-0.5 text-[10px]" style={{ color: "var(--color-success)" }}>已识别</span>}
         </Label>
         <Textarea
           id={id}
@@ -57,6 +62,7 @@ function FieldRow({
           aria-required={ariaRequired}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
+          className={prefilled ? "bg-[var(--color-muted)]" : ""}
         />
       </div>
     )
@@ -69,6 +75,8 @@ function FieldRow({
         <Label htmlFor={id}>
           {field.label}
           {field.required && <span className="ml-1 text-red-500">*</span>}
+          {prefilled && <Sparkles className="ml-1.5 inline h-3 w-3" style={{ color: "var(--color-success)" }} />}
+          {prefilled && <span className="ml-0.5 text-[10px]" style={{ color: "var(--color-success)" }}>已识别</span>}
         </Label>
         <Select value={value} onValueChange={onChange} disabled={disabled}>
           <SelectTrigger id={id} aria-required={ariaRequired}>
@@ -102,6 +110,8 @@ function FieldRow({
       <Label htmlFor={id}>
         {field.label}
         {field.required && <span className="ml-1 text-red-500">*</span>}
+        {prefilled && <Sparkles className="ml-1.5 inline h-3 w-3" style={{ color: "var(--color-success)" }} />}
+        {prefilled && <span className="ml-0.5 text-[10px]" style={{ color: "var(--color-success)" }}>已识别</span>}
       </Label>
       <Input
         id={id}
@@ -123,14 +133,18 @@ export function InlineServiceForm({
   schema,
   intentSource,
   initialSubmittedNo = null,
+  prefill = null,
 }: InlineServiceFormProps) {
-  const [values, setValues] = useState<FormValues>(() => buildInitial(schema))
+  const initialValues = useMemo(() => buildInitial(schema, prefill), [schema, prefill])
+  const [values, setValues] = useState<FormValues>(() => initialValues)
   const [submitted, setSubmitted] = useState<ApplicationRecord | null>(null)
   const [submittedNo, setSubmittedNo] = useState<string | null>(initialSubmittedNo)
   const [isExpanded, setIsExpanded] = useState(true)
   const submit = useSubmitApplication()
   const sessionId = useChatStore((s) => s.activeSessionId)
   const qc = useQueryClient()
+
+  const prefillKeys = useMemo(() => new Set(Object.keys(prefill ?? {})), [prefill])
 
   const isSubmitted = !!(submittedNo || submitted)
   const borderColor = isSubmitted
@@ -260,6 +274,7 @@ export function InlineServiceForm({
                     value={values[field.name] ?? ""}
                     onChange={(v) => handleChange(field.name, v)}
                     disabled={submit.isPending}
+                    prefilled={prefillKeys.has(field.name)}
                   />
                 ))}
                 <div className="flex gap-2 pt-1">

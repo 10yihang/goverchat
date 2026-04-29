@@ -105,6 +105,8 @@ CREATE TABLE IF NOT EXISTS c_user (
   id              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   email           VARCHAR(255)  NOT NULL,
   display_name    VARCHAR(50)   NOT NULL DEFAULT '',
+  password_hash   VARCHAR(128)  DEFAULT NULL,
+  salt            VARCHAR(32)   DEFAULT NULL,
   is_active       TINYINT(1)    NOT NULL DEFAULT 1,
   last_login_at   DATETIME      DEFAULT NULL,
   created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,

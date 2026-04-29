@@ -172,6 +172,30 @@ class TFIDFService:
             "sources": sources,
         }
 
+    def suggest_followups(self, query: str, top_k: int = 4) -> list[str]:
+        """根据用户问题返回相关追问建议（Top-K 相似问题的 question 文本，排除最佳匹配）"""
+        if top_k <= 0:
+            return []
+
+        with self._matrix_lock:
+            if not self._ready or self._vectorizer is None or not self._records:
+                return []
+
+            query_vec = self._vectorizer.transform([tokenize_to_str(query)])
+            sims = cosine_similarity(query_vec, self._matrix).flatten()
+
+        seen: set[str] = set()
+        suggestions: list[str] = []
+        for idx in sims.argsort()[::-1]:
+            q = (self._records[idx].get("question") or "").strip()
+            if not q or q in seen:
+                continue
+            seen.add(q)
+            suggestions.append(q)
+            if len(suggestions) >= top_k:
+                break
+        return suggestions
+
 
 # 全局单例
 tfidf_service = TFIDFService()

@@ -1,13 +1,15 @@
-import { Copy, Trash2 } from "lucide-react"
+import { Copy, Trash2, Presentation } from "lucide-react"
 import { Button } from "@/components/ui"
 import { toast } from "sonner"
 
 interface ChatTopBarProps {
   sessionId: string | null
   onClear: () => void
+  onDemoToggle?: () => void
+  demoActive?: boolean
 }
 
-export function ChatTopBar({ sessionId, onClear }: ChatTopBarProps) {
+export function ChatTopBar({ sessionId, onClear, onDemoToggle, demoActive }: ChatTopBarProps) {
   const title = sessionId ? `会话 ${sessionId.slice(0, 8)}…` : "新会话"
 
   function handleCopy() {
@@ -25,6 +27,17 @@ export function ChatTopBar({ sessionId, onClear }: ChatTopBarProps) {
     >
       <h2 className="truncate font-serif text-sm font-bold">{title}</h2>
       <div className="flex items-center gap-1">
+        {onDemoToggle && (
+          <Button
+            variant={demoActive ? "gold" : "ghost"}
+            size="icon"
+            onClick={onDemoToggle}
+            title="演示模式"
+            className="h-7 w-7"
+          >
+            <Presentation className="h-3.5 w-3.5" />
+          </Button>
+        )}
         {sessionId && (
           <Button variant="ghost" size="icon" onClick={handleCopy} title="复制会话 ID" className="h-7 w-7">
             <Copy className="h-3.5 w-3.5" />
