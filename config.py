@@ -143,6 +143,24 @@ LLM_CHAT_MAX_TURNS = int(os.environ.get("LLM_CHAT_MAX_TURNS", "10"))
 LLM_CHAT_OUTPUT_RESERVE = int(os.environ.get("LLM_CHAT_OUTPUT_RESERVE", "800"))
 LLM_CHAT_TEMPERATURE = float(os.environ.get("LLM_CHAT_TEMPERATURE", "0.3"))
 
+# ---------------------------------------------------------------------------
+# LLM 视觉多模态（图片直送 LLM 分析）
+# ---------------------------------------------------------------------------
+LLM_VISION_ENABLED = os.environ.get("LLM_VISION_ENABLED", "true").lower() == "true"
+LLM_VISION_MODEL = os.environ.get("LLM_VISION_MODEL", "").strip() or LLM_MODEL
+LLM_VISION_MAX_TOKENS = int(os.environ.get("LLM_VISION_MAX_TOKENS", 1024))
+LLM_VISION_TEMPERATURE = float(os.environ.get("LLM_VISION_TEMPERATURE", 0.1))
+
+LLM_VISION_SYSTEM_PROMPT = """你是政务办事智能助手。用户上传了一张政务相关的图片（可能是通知单、表格、证件、截图等）。
+请完成以下任务：
+1. 识别并提取图片中的所有文字内容
+2. 判断图片类型（如：违章通知单、驾驶证、行驶证、办理回执、业务表格、大厅公告等）
+3. 根据图片内容，分析用户可能的办事需求
+4. 如有期限、金额、编号等关键信息，务必准确提取
+
+请用中文回复，先列出"识别文字"，再给出"分析建议"。直接输出，不要加"好的"、"明白"等客套语。"""
+
+
 LLM_CHAT_SYSTEM_PROMPT = """你是"政务智聊"AI助手，专门解答交通运输领域的政务办事问题（驾驶证、机动车、违章、号牌、营运等）。
 
 你的回答必须遵守：

@@ -407,3 +407,10 @@ export interface ActionCard {
   description: string
   actions: ActionCardAction[]
 }
+
+export interface ImageAnalysisResponse extends ChatAnswer {
+  text: string
+  filename?: string
+  image_url?: string
+  analysis_method?: "vision" | "ocr"
+}

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "@/lib/apiClient"
 import { useChatStore } from "@/stores/chatStore"
 import { toast } from "sonner"
-import type { ChatAnswer, SessionSummary } from "@/types/api"
+import type { ChatAnswer, ImageAnalysisResponse, SessionSummary } from "@/types/api"
 import type { DisplayMessage } from "@/components/chat/MessageBubble"
 
 const KEYS = {
@@ -11,10 +11,10 @@ const KEYS = {
 }
 
 interface VoiceResponse extends ChatAnswer { text: string }
-interface ImageResponse extends ChatAnswer { text: string; filename?: string }
+type ImageResponse = ImageAnalysisResponse
 
-function userMsg(content: string, msgType?: "text" | "voice"): DisplayMessage {
-  return { role: "user", content, msg_type: msgType ?? "text", created_at: new Date().toISOString() }
+function userMsg(content: string, msgType?: "text" | "voice", extra?: Partial<DisplayMessage>): DisplayMessage {
+  return { role: "user", content, msg_type: msgType ?? "text", created_at: new Date().toISOString(), ...extra }
 }
 
 function botMsg(d: ChatAnswer): DisplayMessage {
@@ -140,8 +140,9 @@ export function useImageUpload() {
     },
     onMutate: (v) => { append(qc, v.session_id, userMsg(`🖼️ 图片识别中… (${v.image.name})`)); return { prev: v.session_id } },
     onSuccess: (d, _, ctx) => {
+      const method = d.analysis_method === "vision" ? "🤖" : "🔍"
       const label = d.text || d.filename || "（图片内容为空）"
-      const real = [userMsg(`🖼️ ${label}`), botMsg(d)]
+      const real = [userMsg(`${method} ${label}`, "text", { image_url: d.image_url }), botMsg(d)]
       if (ctx?.prev !== d.session_id) handleNewSession(qc, ctx?.prev ?? null, d.session_id, setActive, real, true)
       else replacePlaceholder(qc, d.session_id, ...real)
       qc.invalidateQueries({ queryKey: KEYS.sessions })

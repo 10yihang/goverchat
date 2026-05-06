@@ -38,6 +38,7 @@ export interface DisplayMessage {
   action_card?: ActionCard | null
   id?: number
   _streaming?: boolean
+  image_url?: string
 }
 
 interface MessageBubbleProps {
@@ -207,6 +208,14 @@ export function MessageBubble({ message, onFollowUpClick }: MessageBubbleProps) 
                 }
           }
         >
+          {isUser && message.image_url && (
+            <img
+              src={message.image_url}
+              alt="上传的图片"
+              className="mb-2 max-h-48 w-auto rounded-md border"
+              style={{ borderColor: "var(--color-border)", maxWidth: "100%" }}
+            />
+          )}
           <p className="whitespace-pre-wrap break-words">
             {message.content}
             {message._streaming && (
@@ -222,6 +231,7 @@ export function MessageBubble({ message, onFollowUpClick }: MessageBubbleProps) 
             )}
             {message.answer_source && <AnswerSourceBadge source={message.answer_source} />}
             {message.msg_type === "voice" && <Badge tone="neutral">语音</Badge>}
+            {message.image_url && <Badge tone="neutral">图片</Badge>}
             {!message._streaming && message.id && (
               <FeedbackButtons messageId={message.id} />
             )}
