@@ -115,3 +115,33 @@ export function useUpdateApplicationStatus() {
     onError: (err) => toast.error(err.message),
   })
 }
+
+interface SubmitSupplementVars {
+  query_no: string
+  supplement_data: Record<string, unknown>
+  supplement_remark: string
+}
+
+interface SubmitSupplementResponse {
+  application: ApplicationRecord
+  message: string
+}
+
+export function useSubmitSupplement() {
+  const qc = useQueryClient()
+  return useMutation<SubmitSupplementResponse, ApiError, SubmitSupplementVars>({
+    mutationFn: (v) =>
+      api.patch<SubmitSupplementResponse>(
+        `/api/applications/${v.query_no}/supplement`,
+        {
+          supplement_data: v.supplement_data,
+          supplement_remark: v.supplement_remark,
+        },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: APPLICATION_KEYS.mine })
+      qc.invalidateQueries({ queryKey: APPLICATION_KEYS.byNo(vars.query_no) })
+    },
+    onError: (err) => toast.error(err.message),
+  })
+}

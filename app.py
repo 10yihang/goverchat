@@ -68,7 +68,8 @@ def create_app() -> Flask:
     from routes.c_auth import c_auth_bp
     from routes.chat import chat_bp
     from routes.guide import guide_bp
-    from routes.history import history_bp
+    from routes.halls import halls_bp
+from routes.history import history_bp
     from routes.image import image_bp
     from routes.service_center import service_center_bp
     from routes.demo import demo_bp
@@ -85,7 +86,8 @@ def create_app() -> Flask:
     app.register_blueprint(guide_bp)
     app.register_blueprint(service_center_bp)
     app.register_blueprint(applications_bp)
-    app.register_blueprint(demo_bp)
+    app.register_blueprint(halls_bp)
+app.register_blueprint(demo_bp)
 
     @app.before_request
     def before_request() -> None:
@@ -158,10 +160,6 @@ def create_app() -> Flask:
         @admin_required
         def admin_html():
             return render_template("admin.html")
-
-        @app.get("/docs")
-        def docs():
-            return render_template("docs.html")
 
     @app.get("/favicon.ico")
     def favicon():

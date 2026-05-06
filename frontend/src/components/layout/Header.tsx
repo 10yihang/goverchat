@@ -16,7 +16,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/guide", label: "业务引导" },
   { to: "/service-center", label: "办事服务" },
   { to: "/halls", label: "附近大厅" },
-  { to: "/docs", label: "接口文档" },
 ]
 
 function NavTab({ to, label }: NavItem) {
@@ -86,6 +85,7 @@ export function Header() {
           {NAV_ITEMS.map((item) => (
             <NavTab key={item.to} {...item} />
           ))}
+          {cUser && <NavTab to="/my-applications" label="我的办件" />}
         </nav>
 
         <div className="flex items-center gap-2">

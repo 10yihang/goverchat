@@ -50,6 +50,8 @@ def get_by_id(app_id: int) -> dict | None:
                service_slug, service_title,
                applicant_name, applicant_phone, form_data,
                status, admin_remark,
+               supplement_data, supplement_remark,
+               DATE_FORMAT(supplement_updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS supplement_updated_at,
                DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS created_at,
                DATE_FORMAT(updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS updated_at
         FROM service_application
@@ -65,6 +67,8 @@ def get_by_query_no(query_no: str) -> dict | None:
                service_slug, service_title,
                applicant_name, applicant_phone, form_data,
                status, admin_remark,
+               supplement_data, supplement_remark,
+               DATE_FORMAT(supplement_updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS supplement_updated_at,
                DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS created_at,
                DATE_FORMAT(updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS updated_at
         FROM service_application
@@ -78,6 +82,8 @@ def list_by_user(user_id: int, limit: int = 100) -> list[dict]:
     sql = """
         SELECT id, query_no, service_slug, service_title,
                applicant_name, applicant_phone, status, admin_remark,
+               supplement_data, supplement_remark,
+               DATE_FORMAT(supplement_updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS supplement_updated_at,
                DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS created_at,
                DATE_FORMAT(updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS updated_at
         FROM service_application
@@ -114,6 +120,8 @@ def list_for_admin(
         SELECT id, query_no, user_id, user_email,
                service_slug, service_title,
                applicant_name, applicant_phone, form_data, status, admin_remark,
+               supplement_data, supplement_remark,
+               DATE_FORMAT(supplement_updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS supplement_updated_at,
                DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS created_at,
                DATE_FORMAT(updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS updated_at
         FROM service_application
@@ -176,4 +184,55 @@ def _parse_form_data(row: dict | None) -> dict | None:
             row["form_data"] = {}
     elif raw is None:
         row["form_data"] = {}
+    supp = row.get("supplement_data")
+    if isinstance(supp, str):
+        try:
+            row["supplement_data"] = json.loads(supp)
+        except json.JSONDecodeError:
+            row["supplement_data"] = None
     return row
+
+
+def list_open_by_user(user_id: int, limit: int = 5) -> list[dict]:
+    sql = """
+        SELECT query_no, service_title, status, admin_remark,
+               supplement_remark,
+               DATE_FORMAT(supplement_updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS supplement_updated_at,
+               DATE_FORMAT(updated_at, '%%Y-%%m-%%d %%H:%%i:%%S') AS updated_at
+        FROM service_application
+        WHERE user_id = %s AND status IN ('已提交', '审核中', '材料待补充')
+        ORDER BY updated_at DESC
+        LIMIT %s
+    """
+    return execute(sql, (user_id, limit), fetchall=True) or []
+
+
+def submit_supplement(
+    app_id: int,
+    user_id: int,
+    supplement_data: dict,
+    supplement_remark: str,
+) -> dict | None:
+    record = get_by_id(app_id)
+    if record is None:
+        return None
+    if int(record["user_id"]) != int(user_id):
+        return None
+    if record["status"] != "材料待补充":
+        raise ValueError("当前状态不需要补充材料")
+
+    execute(
+        """UPDATE service_application
+           SET status = '审核中',
+               supplement_data = %s,
+               supplement_remark = %s,
+               supplement_updated_at = NOW()
+           WHERE id = %s""",
+        (
+            json.dumps(supplement_data, ensure_ascii=False),
+            supplement_remark,
+            app_id,
+        ),
+        commit=True,
+    )
+    return get_by_id(app_id)

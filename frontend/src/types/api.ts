@@ -120,6 +120,9 @@ export interface ApplicationRecord {
   form_data?: Record<string, string | number | boolean | null>
   status: "已提交" | "审核中" | "材料待补充" | "办理完成" | "已退回"
   admin_remark?: string | null
+  supplement_data?: Record<string, unknown> | null
+  supplement_remark?: string | null
+  supplement_updated_at?: string | null
   created_at?: string
   updated_at?: string
 }

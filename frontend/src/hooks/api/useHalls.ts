@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
-import hallsData from "@/data/halls.json"
-import type { Hall } from "@/types/api"
+import { api } from "@/lib/apiClient"
+import type { Hall, HallsResponse } from "@/types/api"
 
 const KEYS = {
   halls: ["halls"] as const,
+  all: ["halls", "all"] as const,
   hall: (id: string) => ["halls", "detail", id] as const,
 }
 
@@ -22,21 +23,21 @@ function mockWaitCount(windows: number): number {
   return Math.max(2, Math.floor(Math.random() * windows * 2))
 }
 
-const rawHalls = hallsData.halls as Hall[]
-
 export function useHalls(userLat?: number, userLng?: number, serviceFilter?: string) {
   return useQuery<Hall[]>({
-    queryKey: [...KEYS.halls, userLat, userLng, serviceFilter],
-    queryFn: () => {
-      return rawHalls
-        .filter((h) => !serviceFilter || h.services.includes(serviceFilter))
+    queryKey: [...KEYS.all, userLat, userLng, serviceFilter],
+    queryFn: async () => {
+      const query: Record<string, string> = {}
+      if (serviceFilter) query.service = serviceFilter
+      const r = await api.get<HallsResponse>("/api/halls", { query })
+      return r.halls
         .map((h) => ({
           ...h,
           distance:
             userLat != null && userLng != null
               ? calcDistance(userLat, userLng, h.lat, h.lng)
               : undefined,
-          wait_count: mockWaitCount(h.windows),
+          wait_count: mockWaitCount(h.windows as number),
         }))
         .sort((a, b) => {
           if (a.distance != null && b.distance != null) return a.distance - b.distance
@@ -50,10 +51,13 @@ export function useHalls(userLat?: number, userLng?: number, serviceFilter?: str
 export function useHall(id: string | null) {
   return useQuery<Hall | undefined>({
     queryKey: KEYS.hall(id ?? ""),
-    queryFn: () => {
-      const hall = rawHalls.find((h) => h.id === id)
-      if (!hall) throw new Error("未找到该大厅信息")
-      return { ...hall, wait_count: mockWaitCount(hall.windows) }
+    queryFn: async () => {
+      const r = await api.get<{ hall: Hall }>(`/api/halls/${id}`)
+      const hall = r.hall
+      return {
+        ...hall,
+        wait_count: mockWaitCount((hall as Hall).windows as number),
+      }
     },
     enabled: !!id,
     staleTime: 30_000,

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { MessageSquare, BookOpen, Briefcase, FileCode } from "lucide-react"
+import { MessageSquare, BookOpen, Briefcase } from "lucide-react"
 
 const TILES = [
   {
@@ -22,13 +22,6 @@ const TILES = [
     title: "办事服务",
     desc: "完整事项目录、办理通道、材料清单下载、办理进度查询。",
     accent: "var(--color-primary)",
-  },
-  {
-    to: "/docs",
-    icon: FileCode,
-    title: "接口文档",
-    desc: "31 个 RESTful 接口与三模态调用范例，便于二次开发与集成。",
-    accent: "var(--color-accent-gold)",
   },
 ] as const
 
@@ -83,7 +76,7 @@ export default function HomePage() {
           <h2 className="font-serif text-2xl font-bold">核心服务</h2>
           <span className="text-xs text-muted-foreground">点击卡片进入对应模块</span>
         </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {TILES.map((tile) => {
             const Icon = tile.icon
             return (

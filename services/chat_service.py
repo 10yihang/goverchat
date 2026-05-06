@@ -68,8 +68,49 @@ class ChatService:
 
         sid = create_session(user_agent=user_agent, ip_address=ip, user_id=user_id)
         if is_new and user_id:
+            self._maybe_push_open_application_reminder(sid, user_id)
             self._maybe_push_expiry_reminder(sid, user_id)
         return sid
+
+    def _maybe_push_open_application_reminder(self, session_id: str, user_id: int) -> None:
+        try:
+            from models.application import list_open_by_user
+
+            rows = list_open_by_user(user_id, limit=5)
+        except Exception as exc:
+            logger.warning("[ChatService] 未完成办件查询失败 err=%s", exc)
+            return
+
+        if not rows:
+            return
+
+        lines: list[str] = []
+        lines.append(f"📋 您有 {len(rows)} 个正在办理的事项：\n")
+        for i, row in enumerate(rows, 1):
+            lines.append(
+                f"{i}. {row['service_title']}\n"
+                f"   受理编号：{row['query_no']}\n"
+                f"   当前状态：{row['status']}"
+            )
+            if row["status"] == "材料待补充" and row.get("admin_remark"):
+                lines.append(f"\n   处理说明：{row['admin_remark']}")
+            lines.append(f"\n   更新时间：{row['updated_at']}\n")
+
+        lines.append("您可以前往“我的办件”查看详情，或直接输入受理编号查询进度。")
+
+        try:
+            add_message(
+                session_id=session_id,
+                role="bot",
+                content="\n".join(lines),
+                msg_type="text",
+            )
+            logger.info(
+                "[ChatService] 已推送未完成办件提醒 session=%s user_id=%s count=%d",
+                session_id, user_id, len(rows),
+            )
+        except Exception as exc:
+            logger.warning("[ChatService] 未完成办件提醒写入失败 err=%s", exc)
 
     def _maybe_push_expiry_reminder(self, session_id: str, user_id: int) -> None:
         try:

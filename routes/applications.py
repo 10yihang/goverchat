@@ -60,3 +60,45 @@ def get_application_by_query_no(query_no: str):
     if int(record["user_id"]) != int(user["id"]):
         return jsonify({"error": "forbidden", "message": "无权查看此申请"}), 403
     return jsonify({"application": record}), 200
+
+
+@applications_bp.patch("/api/applications/<query_no>/supplement")
+@c_login_required
+def submit_application_supplement(query_no: str):
+    user = current_c_user()
+    record = application_model.get_by_query_no(query_no)
+    if record is None:
+        return jsonify({"error": "not_found", "message": "未找到对应申请"}), 404
+    if int(record["user_id"]) != int(user["id"]):
+        return jsonify({"error": "forbidden", "message": "无权操作此申请"}), 403
+
+    if record["status"] != "材料待补充":
+        return jsonify(
+            {"error": "invalid_status", "message": "当前状态不需要补充材料"}
+        ), 400
+
+    data = request.get_json(silent=True) or {}
+    supplement_data = data.get("supplement_data") or {}
+    supplement_remark = (data.get("supplement_remark") or "").strip()
+
+    if not supplement_remark:
+        return jsonify(
+            {"error": "missing_field", "message": "补充说明不能为空"}
+        ), 400
+
+    try:
+        updated = application_model.submit_supplement(
+            app_id=int(record["id"]),
+            user_id=int(user["id"]),
+            supplement_data=supplement_data,
+            supplement_remark=supplement_remark,
+        )
+    except ValueError as exc:
+        return jsonify({"error": "invalid_status", "message": str(exc)}), 400
+
+    return jsonify(
+        {
+            "application": updated,
+            "message": "补充材料已提交，申请已重新进入审核",
+        }
+    ), 200

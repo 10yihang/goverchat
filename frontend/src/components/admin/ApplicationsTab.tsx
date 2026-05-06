@@ -123,6 +123,7 @@ export function ApplicationsTab() {
               <TableHead>申请人</TableHead>
               <TableHead>手机号</TableHead>
               <TableHead className="w-[110px]">状态</TableHead>
+              <TableHead className="w-[100px]">补正</TableHead>
               <TableHead className="w-[160px]">提交时间</TableHead>
               <TableHead className="w-[80px] text-right">操作</TableHead>
             </TableRow>
@@ -130,14 +131,14 @@ export function ApplicationsTab() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                   加载中…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                   暂无申请记录
                 </TableCell>
               </TableRow>
@@ -150,6 +151,15 @@ export function ApplicationsTab() {
                 <TableCell className="font-mono text-xs">{row.applicant_phone || "—"}</TableCell>
                 <TableCell>
                   <Badge tone={STATUS_TONE[row.status] ?? "neutral"}>{row.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  {row.supplement_remark ? (
+                    <span className="text-xs text-[var(--color-accent-gold)] font-medium">
+                      已补正
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {formatDateTime(row.created_at ?? "")}

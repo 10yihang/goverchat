@@ -89,6 +89,9 @@ export function ApplicationDetailDialog({ record, open, onClose }: ApplicationDe
                 label="最后更新"
                 value={formatDateTime(record.updated_at ?? "")}
               />
+              {record.admin_remark && (
+                <DetailRow label="管理员备注" value={record.admin_remark} />
+              )}
             </div>
           </section>
 
@@ -113,6 +116,49 @@ export function ApplicationDetailDialog({ record, open, onClose }: ApplicationDe
             </div>
           </section>
         </div>
+
+        {record.supplement_remark && (
+          <div className="space-y-3 border-t pt-4">
+            <h3 className="text-sm font-bold">用户补正内容</h3>
+            <div className="rounded-md border p-3 text-sm space-y-2"
+              style={{
+                borderColor: "var(--color-border)",
+                background: "color-mix(in oklab, var(--color-muted) 40%, transparent)",
+              }}
+            >
+              <p>
+                <span className="text-muted-foreground">补正说明：</span>
+                {record.supplement_remark}
+              </p>
+              {record.supplement_updated_at && (
+                <p className="text-xs text-muted-foreground">
+                  补正时间：{formatDateTime(record.supplement_updated_at)}
+                </p>
+              )}
+              {record.supplement_data && typeof record.supplement_data === "object" && (() => {
+                const suppData = record.supplement_data as Record<string, unknown>
+                const items = Array.isArray(suppData.items) ? suppData.items as Array<Record<string, unknown>> : null
+                if (!items || items.length === 0) return null
+                return (
+                  <div className="mt-2 space-y-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">补充材料：</span>
+                    {items.map((item, i: number) => (
+                      <div key={i} className="rounded border p-2 text-xs"
+                        style={{ borderColor: "var(--color-border)" }}>
+                        <p className="font-medium">📎 {String(item.name ?? `材料 ${i + 1}`)}</p>
+                        {Boolean(item.description) && (
+                          <p className="text-muted-foreground mt-0.5">
+                            {String(item.description)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3 border-t pt-4">
           <h3 className="text-sm font-bold">更新办理状态</h3>
