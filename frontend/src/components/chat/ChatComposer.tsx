@@ -1,5 +1,5 @@
-import { useRef, useCallback, type KeyboardEvent, type FormEvent } from "react"
-import { Send, Mic, MicOff, Image as ImageIcon, Loader2 } from "lucide-react"
+import { useRef, useState, useCallback, useEffect, type KeyboardEvent, type FormEvent, type DragEvent } from "react"
+import { Send, Mic, MicOff, Image as ImageIcon, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui"
 import { cn } from "@/lib/utils"
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder"
@@ -33,6 +33,9 @@ export function ChatComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const submittingRef = useRef(false)
   const voice = useVoiceRecorder()
+  const [previewFile, setPreviewFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   const handleSubmit = useCallback(
     (e?: FormEvent) => {
@@ -77,13 +80,58 @@ export function ChatComposer({
     }
   }, [voice, onSendVoice])
 
+  useEffect(() => {
+    if (previewFile) {
+      const url = URL.createObjectURL(previewFile)
+      setPreviewUrl(url)
+      return () => URL.revokeObjectURL(url)
+    }
+    setPreviewUrl(null)
+  }, [previewFile])
+
+  const confirmImage = useCallback(() => {
+    if (previewFile) {
+      onSendImage(previewFile)
+      setPreviewFile(null)
+    }
+  }, [previewFile, onSendImage])
+
+  const cancelImage = useCallback(() => {
+    setPreviewFile(null)
+  }, [])
+
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
-      if (file) onSendImage(file)
+      if (file) setPreviewFile(file)
       e.target.value = ""
     },
-    [onSendImage]
+    []
+  )
+
+  const handleDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer?.types.includes("Files")) setDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setDragOver(false)
+      const file = e.dataTransfer?.files?.[0]
+      if (file && file.type.startsWith("image/")) {
+        setPreviewFile(file)
+      }
+    },
+    []
   )
 
   const canSend = text.trim().length > 0 && !isPending
@@ -96,7 +144,54 @@ export function ChatComposer({
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+      {previewFile && (
+        <div className="mx-auto mb-2 max-w-3xl">
+          <div
+            className="gov-card flex items-start gap-3 p-3"
+            style={{ boxShadow: "var(--shadow-elevated)" }}
+          >
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="预览"
+                className="h-20 w-20 shrink-0 rounded-md border object-cover"
+                style={{ borderColor: "var(--color-border)" }}
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{previewFile.name}</p>
+              <p className="text-xs text-[var(--color-muted-foreground)]">
+                {(previewFile.size / 1024).toFixed(0)} KB · {previewFile.type}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <Button type="button" variant="primary" size="sm" onClick={confirmImage} disabled={isPending}>
+                  确认发送
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={cancelImage} disabled={isPending}>
+                  <X className="mr-1 h-3 w-3" />
+                  取消
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className={cn("mx-auto max-w-3xl relative", dragOver && "opacity-50")}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {dragOver && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed"
+            style={{ borderColor: "var(--color-primary)", background: "color-mix(in oklab, var(--color-primary) 8%, transparent)" }}>
+            <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
+              释放以上传图片
+            </p>
+          </div>
+        )}
         <div
           className="gov-card flex items-end gap-2 p-3"
           style={{ boxShadow: "var(--shadow-elevated)" }}

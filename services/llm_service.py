@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import base64
 import json
 import logging
+import mimetypes
+import os
 import re
 import threading
 import time
@@ -219,6 +222,67 @@ class LLMService:
         except Exception as exc:
             logger.warning("[LLM] chat_completion_stream 失败 err=%s", exc)
             yield None
+
+    def analyze_image(self, image_path: str, question: str | None = None) -> str | None:
+        if not self.is_enabled() or not config.LLM_VISION_ENABLED:
+            return None
+        client = self._get_client()
+        if client is None:
+            return None
+
+        try:
+            with open(image_path, "rb") as f:
+                img_data = base64.b64encode(f.read()).decode("utf-8")
+        except (OSError, IOError) as exc:
+            logger.warning("[LLM] 图片读取失败 path=%s err=%s", image_path, exc)
+            return None
+
+        ext = os.path.splitext(image_path)[1].lower()
+        mime_type = mimetypes.types_map.get(ext, "image/png")
+        if mime_type not in ("image/png", "image/jpeg", "image/webp", "image/gif"):
+            mime_type = "image/png"
+
+        image_url = f"data:{mime_type};base64,{img_data}"
+        user_text = question or "请分析这张图片的内容和可能涉及的政务办事需求。"
+
+        messages = [
+            {"role": "system", "content": config.LLM_VISION_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_text},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": image_url},
+                    },
+                ],
+            },
+        ]
+
+        image_size_kb = len(img_data) * 3 / 4 / 1024
+        logger.info(
+            "[LLM-vision] analyzing image=%s size=%.0fKB model=%s",
+            os.path.basename(image_path),
+            image_size_kb,
+            config.LLM_VISION_MODEL,
+        )
+
+        try:
+            response = client.chat.completions.create(
+                model=config.LLM_VISION_MODEL,
+                messages=messages,
+                max_tokens=config.LLM_VISION_MAX_TOKENS,
+                temperature=config.LLM_VISION_TEMPERATURE,
+            )
+            result = (response.choices[0].message.content or "").strip()
+            if not result:
+                logger.warning("[LLM-vision] 模型返回空内容")
+                return None
+            logger.info("[LLM-vision] 分析完成 len=%d", len(result))
+            return result
+        except Exception as exc:
+            logger.warning("[LLM-vision] 调用失败 err=%s", exc)
+            return None
 
     @staticmethod
     def estimate_tokens(text: str) -> int:
